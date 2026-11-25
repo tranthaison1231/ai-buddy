@@ -1,0 +1,148 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "ai-buddy",
+  "title": "AI Buddy",
+  "description": "AI helpers for daily work: translate, reply and rewrite text with any OpenAI-compatible LLM",
+  "icon": "buddy.png",
+  "author": "hoang_tran",
+  "platforms": [
+    "macOS"
+  ],
+  "license": "MIT",
+  "categories": [
+    "Productivity"
+  ],
+  "commands": [
+    {
+      "name": "translate",
+      "title": "Buddy Translate",
+      "description": "Translate selected text (Vietnamese ⇄ English)",
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "text",
+          "placeholder": "Input text",
+          "type": "text",
+          "required": false
+        }
+      ],
+      "icon": "buddy-translate.png"
+    },
+    {
+      "name": "reply",
+      "title": "Buddy Draft Reply",
+      "description": "Draft a reply for the selected chat messages; tweak it with your own idea",
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "text",
+          "placeholder": "Input question",
+          "type": "text",
+          "required": false
+        }
+      ],
+      "icon": "buddy-draft-reply.png"
+    },
+    {
+      "name": "rewrite",
+      "title": "Buddy Polish English",
+      "description": "Polish the selected English draft: correct grammar, natural wording, plus lessons to learn",
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "text",
+          "placeholder": "Input draft",
+          "type": "text",
+          "required": false
+        }
+      ],
+      "icon": "buddy-polish.png"
+    },
+    {
+      "name": "result",
+      "title": "Buddy Home",
+      "description": "Home: guide, settings and quick run for Translate / Draft Reply / Polish English",
+      "mode": "view",
+      "icon": "buddy-home.png"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "language",
+      "title": "Language",
+      "description": "Interface language. AI content (translations, Vietnamese meanings, lessons) is not affected.",
+      "type": "dropdown",
+      "required": false,
+      "default": "vi",
+      "data": [
+        {
+          "title": "Tiếng Việt",
+          "value": "vi"
+        },
+        {
+          "title": "English",
+          "value": "en"
+        }
+      ]
+    },
+    {
+      "name": "baseUrl",
+      "title": "Base URL",
+      "description": "OpenAI-compatible endpoint: OpenAI, OpenRouter, Ollama (http://localhost:11434/v1), LiteLLM…",
+      "type": "textfield",
+      "required": false,
+      "placeholder": "Leave empty to use the shared setup"
+    },
+    {
+      "name": "apiKey",
+      "title": "API Key",
+      "type": "password",
+      "required": true,
+      "description": "Your API key for the endpoint"
+    },
+    {
+      "name": "model",
+      "title": "Model",
+      "type": "textfield",
+      "required": false,
+      "description": "Model name at the endpoint. A small, fast model is enough.",
+      "placeholder": "Leave empty to use the shared setup (e.g. gpt-5-mini)"
+    },
+    {
+      "name": "fastMode",
+      "title": "Speed",
+      "label": "Skip model thinking (faster)",
+      "description": "Sends reasoning_effort: none (retried without it if the provider rejects it).",
+      "type": "checkbox",
+      "default": true,
+      "required": false
+    },
+    {
+      "name": "mwKey",
+      "title": "Merriam-Webster Key",
+      "description": "Free Learner's Dictionary key from dictionaryapi.com for dictionary IPA. Optional: without it Wiktionary / AI is used.",
+      "type": "password",
+      "required": false
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^2.13.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.2.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
+    "typescript": "^5.6.0",
+    "esbuild": "^0.28.2"
+  },
+  "scripts": {
+    "dev": "ray develop",
+    "build": "ray build -e dist",
+    "lint": "ray lint",
+    "fix-lint": "ray lint --fix",
+    "test": "esbuild test/run.ts --bundle --platform=node --format=cjs --alias:@raycast/api=./test/raycast-mock.cjs --jsx=automatic --external:react --log-level=warning --outfile=node_modules/.cache/buddy-test.cjs && node node_modules/.cache/buddy-test.cjs",
+    "share": "npm test && bash scripts/pack.sh && open -R share/AI-Buddy.zip"
+  }
+}
