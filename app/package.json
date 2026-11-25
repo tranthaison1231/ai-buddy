@@ -118,6 +118,24 @@
       "required": false
     },
     {
+      "name": "polishMode",
+      "title": "Polish English Mode",
+      "description": "Choose whether Buddy Polish English opens the review popup or replaces the selected text immediately.",
+      "type": "dropdown",
+      "required": false,
+      "default": "popup",
+      "data": [
+        {
+          "title": "Show Popup",
+          "value": "popup"
+        },
+        {
+          "title": "Replace Immediately",
+          "value": "replace"
+        }
+      ]
+    },
+    {
       "name": "mwKey",
       "title": "Merriam-Webster Key",
       "description": "Free Learner's Dictionary key from dictionaryapi.com for dictionary IPA. Optional: without it Wiktionary / AI is used.",

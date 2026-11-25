@@ -10,10 +10,19 @@ import {
   Toast,
 } from "@raycast/api";
 import { useEffect, useMemo, useState } from "react";
-import { clipInput, dataBlock, getConfig, isInsecureEndpoint, MAX_INPUT_CHARS, streamChat } from "./llm";
+import {
+  cleanOutput,
+  clipInput,
+  dataBlock,
+  getConfig,
+  isInsecureEndpoint,
+  MAX_INPUT_CHARS,
+  splitLessons,
+  streamChat,
+} from "./llm";
 import { getCachedLookup, isLookupText, parseLookup, setCachedLookup } from "./lookup";
 import { ui } from "./i18n";
-import { LESSONS_MARKER, systemPrompt } from "./prompts";
+import { systemPrompt } from "./prompts";
 import { cambridgeUrl, loadPronunciations, Pron, speak } from "./pronounce";
 
 export type Mode = "translate" | "reply" | "rewrite";
@@ -41,16 +50,6 @@ export function isVietnamese(text: string): boolean {
 /** The one placeholder used everywhere something is still on its way. */
 const LOADING = "⏳ Loading…";
 
-/** Rewrite answers are "<rewritten>\n---LESSONS---\n<bullets>"; split them (also mid-stream). */
-function splitLessons(output: string): { main: string; lessons: string } {
-  const at = output.indexOf(LESSONS_MARKER);
-  if (at === -1) {
-    // Hide a half-streamed marker such as "\n---LES" until it completes.
-    return { main: output.replace(/\n-{1,3}[A-Z-]*$/, "").trim(), lessons: "" };
-  }
-  return { main: output.slice(0, at).trim(), lessons: output.slice(at + LESSONS_MARKER.length).trim() };
-}
-
 function buildPrompt(mode: Mode, text: string): { title: string; system: string } {
   if (mode === "translate") {
     const target = isVietnamese(text) ? "English" : "Vietnamese";
@@ -65,13 +64,6 @@ function buildPrompt(mode: Mode, text: string): { title: string; system: string 
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
 const normalize = (s: string) => s.replace(/\s+/g, " ").trim();
-// Small models sometimes wrap the answer in <text> tags, or echo the input block back.
-// Drop a block only when it is the echoed input; otherwise keep its content.
-const cleanOutput = (output: string, input: string) =>
-  output
-    .replace(/<text>([\s\S]*?)<\/text>/g, (_, inner: string) => (normalize(inner) === normalize(input) ? "" : inner))
-    .replace(/<\/?text>/g, "")
-    .trim();
 
 /**
  * Markdown from the model is rendered by Raycast, which loads remote images by itself. A prompt

@@ -64,7 +64,9 @@ Viết lại draft tiếng Anh cho đúng ngữ pháp, tự nhiên. Kèm **📘 
 ### Trong màn hình kết quả
 - **↵** Thay draft (hoặc áp dụng idea nếu đang gõ)
 - **⌘⇧C** Copy
-- **⌘R** Viết lại từ đầu`,
+- **⌘R** Viết lại từ đầu
+
+*(Mẹo: Vào **Settings → Polish English Mode** chọn **Replace Immediately** nếu muốn bấm hotkey là thay thế ngay không cần mở popup.)*`,
   } as Record<Mode, string>,
   promptsSubtitle: "Tuỳ chỉnh prompt từng buddy",
   promptsGuide: `## ✍️ Prompts
@@ -87,6 +89,7 @@ Nhấn **↵** để mở trang cài đặt của AI Buddy trong Raycast:
 - **API Key** - lưu trong Raycast (Keychain)
 - **Model** - đổi model không cần sửa code
 - **Language** - ngôn ngữ giao diện: Tiếng Việt / English
+- **Polish English Mode** - chọn mở popup xem trước (Show Popup) hoặc thay thế ngay (Replace Immediately)
 - **Hotkey** - gán phím tắt cho từng lệnh ở cột bên phải
 - **Giọng đọc** - theo System voice của macOS (Accessibility → Read & Speak)
 
@@ -185,7 +188,9 @@ Rewrites an English draft into correct, natural English. Plus **📘 Lessons**: 
 ### In the result
 - **↵** Replace draft (or apply the idea while typing one)
 - **⌘⇧C** Copy
-- **⌘R** Start over`,
+- **⌘R** Start over
+
+*(Tip: Choose **Replace Immediately** in **Settings → Polish English Mode** to replace selected text directly without opening the popup.)*`,
   },
   promptsSubtitle: "Customize each buddy's prompt",
   promptsGuide: `## ✍️ Prompts
@@ -208,6 +213,7 @@ Press **↵** to open AI Buddy's settings in Raycast:
 - **API Key** - stored by Raycast (Keychain)
 - **Model** - switch models without code changes
 - **Language** - interface language: Tiếng Việt / English
+- **Polish English Mode** - choose between Show Popup or Replace Immediately
 - **Hotkey** - assign a hotkey to each command in the right column
 - **Voice** - the macOS system voice (Accessibility → Read & Speak)
 

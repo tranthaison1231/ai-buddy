@@ -1,12 +1,16 @@
 import { environment, getPreferenceValues } from "@raycast/api";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { LESSONS_MARKER } from "./prompts";
+
+export type PolishMode = "popup" | "replace";
 
 export type Prefs = {
   baseUrl: string;
   apiKey: string;
   model: string;
   fastMode: boolean;
+  polishMode: PolishMode;
   mwKey?: string;
 };
 
@@ -35,7 +39,28 @@ export function getConfig(): Prefs {
     model: pick("model"),
     mwKey: prefs.mwKey?.trim() || undefined,
     fastMode: prefs.fastMode ?? true,
+    polishMode: prefs.polishMode === "replace" ? "replace" : "popup",
   };
+}
+
+const normalize = (s: string) => s.replace(/\s+/g, " ").trim();
+
+// Small models sometimes wrap the answer in <text> tags, or echo the input block back.
+// Drop a block only when it is the echoed input; otherwise keep its content.
+export const cleanOutput = (output: string, input: string) =>
+  output
+    .replace(/<text>([\s\S]*?)<\/text>/g, (_, inner: string) => (normalize(inner) === normalize(input) ? "" : inner))
+    .replace(/<\/?text>/g, "")
+    .trim();
+
+/** Rewrite answers are "<rewritten>\n---LESSONS---\n<bullets>"; split them (also mid-stream). */
+export function splitLessons(output: string): { main: string; lessons: string } {
+  const at = output.indexOf(LESSONS_MARKER);
+  if (at === -1) {
+    // Hide a half-streamed marker such as "\n---LES" until it completes.
+    return { main: output.replace(/\n-{1,3}[A-Z-]*$/, "").trim(), lessons: "" };
+  }
+  return { main: output.slice(0, at).trim(), lessons: output.slice(at + LESSONS_MARKER.length).trim() };
 }
 
 const IDLE_TIMEOUT_MS = 60_000; // no data for this long = give up (a long answer that keeps streaming is fine)

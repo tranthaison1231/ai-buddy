@@ -35,6 +35,7 @@ Installation typically takes approximately 2 minutes.
 1. Open **Raycast** (typically `⌥ + Space` or `⌘ + Space`), type `Buddy Home`, and press **Return**.
 2. When Raycast prompts you for your **API Key**, paste the key you received and click **Continue**.
 3. *(Optional)* To switch the interface language to English, navigate to **Buddy Home → Settings → Language** and select **English**.
+4. *(Optional)* To have **Buddy Polish English** replace selected text immediately without opening the popup, set **Buddy Home → Settings → Polish English Mode** to **Replace Immediately**.
 
 ## Recommended Hotkeys
 
