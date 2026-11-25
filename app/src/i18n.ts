@@ -1,6 +1,8 @@
 import { getPreferenceValues } from "@raycast/api";
-import type { Mode } from "./llm-view";
+import type { HomeFeatureId } from "./home";
+import type { VisionAction } from "./llm";
 import type { PromptId } from "./prompts";
+import type { VisionSource } from "./vision-io";
 
 /**
  * Interface language (Settings → Language). Only the app's own labels and guides change:
@@ -15,13 +17,16 @@ const vi = {
   runWith: (text: string) => `Chạy với: "${text}"`,
   hotkeyHint: "Gợi ý hotkey",
   inputHint: "Text bôi đen, hoặc gõ ở ô phía trên",
+  visionInputHint: "Chụp vùng màn hình, ảnh clipboard, hoặc chọn file ảnh",
   settingsSection: "Cài đặt",
   featureSubtitle: {
     translate: "Việt ⇄ Anh",
     reply: "Soạn nháp câu trả lời",
     rewrite: "Sửa tiếng Anh + học",
     summarize: "Tóm tắt + Action Items",
-  } as Record<Mode, string>,
+    ask: "Hỏi AI nhanh + nối tiếp",
+    vision: "Đọc, dịch & giải thích ảnh",
+  } as Record<HomeFeatureId, string>,
   guide: {
     translate: `## 🌐 Buddy Translate
 Dịch nhanh, tự nhận ngôn ngữ: tiếng Việt → tiếng Anh, còn lại → tiếng Việt. Giữ nguyên thuật ngữ kỹ thuật (PR, deploy, ticket…).
@@ -80,7 +85,32 @@ Hoặc dán nội dung vào ô tìm kiếm phía trên rồi bấm **↵**.
 ### Trong màn hình kết quả
 - **↵** Copy bản tóm tắt · **⌘⇧V** Dán vào app
 - **⌘T** Đổi ngôn ngữ tóm tắt (Tiếng Việt ⇄ English) · **⌘R** Tóm tắt lại`,
-  } as Record<Mode, string>,
+    ask: `## 💬 Buddy Ask
+Hỏi nhanh AI bất cứ gì ngay trong Raycast — hỗ trợ hỏi nối tiếp (follow-up) và tự đính kèm đoạn text đang bôi đen làm ngữ cảnh.
+
+### Cách dùng
+1. **Hỏi nhanh:** Mở Raycast → gõ \`Buddy Ask\` → gõ câu hỏi → **↵**
+2. **Hỏi về đoạn đang bôi đen:** Bôi đen code / lỗi / email → bấm hotkey → gõ câu hỏi (hoặc bấm nhanh **⌘1** Giải thích · **⌘2** Tìm lỗi · **⌘3** Ý chính)
+
+### Trong màn hình kết quả
+- **↵** Copy câu trả lời · **⌘↵** Hỏi nối tiếp (follow-up)
+- **⌘⇧V** Dán vào app · **⌘⇧K** Copy code block (nếu có)
+- **⌘R** Trả lời lại · **⌘N** Câu hỏi mới`,
+    vision: `## 👁️ Buddy Vision
+Chụp nhanh 1 vùng màn hình (hoặc đọc ảnh từ Clipboard / File) để **trích xuất text (OCR), dịch, giải thích lỗi/biểu đồ, hoặc tóm tắt**.
+
+### Cách dùng
+1. Bấm hotkey → kéo chọn vùng màn hình cần đọc (hoặc nhấn **Space** để chọn cả cửa sổ, **Esc** để huỷ)
+2. Ảnh và kết quả phân tích hiện ngay lập tức
+3. Hoặc chọn **Analyze Clipboard Image** (**⌘↵**) / **Choose Image File** (**⌘O**)
+
+### Trong màn hình kết quả
+- **↵** Copy kết quả · **⌘↵** Hỏi thêm về bức ảnh này
+- **⌘1** OCR · **⌘2** Dịch · **⌘3** Giải thích · **⌘4** Tóm tắt
+- **⌘T** Ẩn/hiện ảnh xem trước · **⌘N** Chụp vùng mới · **⌘B** Dùng ảnh Clipboard
+
+*(Lưu ý: Cần model hỗ trợ ảnh như **Google Gemini** hoặc **OpenAI**; lần đầu macOS sẽ hỏi quyền **Screen Recording** cho Raycast.)*`,
+  } as Record<HomeFeatureId, string>,
   promptsSubtitle: "Tuỳ chỉnh prompt từng buddy",
   promptsGuide: `## ✍️ Prompts
 Nhấn **↵** để xem và sửa prompt của từng buddy: vai trò, giọng văn, quy tắc xưng hô, ví dụ…
@@ -90,6 +120,8 @@ Nhấn **↵** để xem và sửa prompt của từng buddy: vai trò, giọng 
 - **Draft Reply** - soạn câu trả lời
 - **Polish English** - sửa tiếng Anh + bài học
 - **Summarize** - tóm tắt + Action Items
+- **Ask** - hỏi đáp nhanh + follow-up
+- **Vision** - đọc, dịch, giải thích ảnh
 - **Vocabulary** - cột Từ vựng khi dịch câu
 
 Phần định dạng output được code giữ cố định, nên sửa thoải mái không làm hỏng giao diện. Bản mặc định luôn khôi phục được (**⌃X**).
@@ -103,6 +135,7 @@ Nhấn **↵** để mở trang cài đặt của AI Buddy trong Raycast:
 - **API Key & Model** - cấu hình riêng cho từng provider ngay bên dưới, API key được Raycast lưu bảo mật trong Keychain
 - **Language** - ngôn ngữ giao diện: Tiếng Việt / English
 - **Polish English Mode** - chọn mở popup xem trước (Show Popup) hoặc thay thế ngay (Replace Immediately)
+- **Vision Default Action** - chế độ mặc định khi chụp ảnh với Buddy Vision (Explain / OCR / Translate / Summarize)
 - **Hotkey** - gán phím tắt cho từng lệnh ở mục Commands
 - **Giọng đọc** - theo System voice của macOS (Accessibility → Read & Speak)
 
@@ -111,7 +144,7 @@ Nhấn **↵** để mở trang cài đặt của AI Buddy trong Raycast:
 - **Prompt đã sửa** - \`prompts.json\`
 - ⌘K → **Show Data Folder** để xem · **Clear Dictionary Cache** để xoá
 
-Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘S** Summarize`,
+Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘S** Summarize · **⌃⌘A** Ask · **⌃⌘V** Vision`,
 
   // Prompts screen
   promptSubtitle: {
@@ -120,6 +153,8 @@ Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E**
     reply: "Soạn câu trả lời",
     rewrite: "Sửa tiếng Anh + bài học",
     summarize: "Tóm tắt + Action Items",
+    ask: "Hỏi AI nhanh + follow-up",
+    vision: "Phân tích ảnh chụp màn hình / file",
     vocab: "Cột Từ vựng khi dịch câu",
   } as Record<PromptId, string>,
   edited: "Đã sửa",
@@ -153,6 +188,46 @@ Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E**
   originalLength: "Độ dài gốc",
   formatLength: (words: number, chars: number) =>
     `${words.toLocaleString("en-US")} từ · ${chars.toLocaleString("en-US")} ký tự`,
+
+  // Buddy Ask
+  askQuestionField: "❓ Câu hỏi",
+  askContextField: "📎 Ngữ cảnh (tuỳ chọn)",
+  askPlaceholder: "Hỏi bất cứ gì (vd: lệnh git undo commit trước, giải thích OAuth2…)",
+  askWithContextPlaceholder: "Hỏi về đoạn ngữ cảnh bên dưới… (hoặc bấm ⌘1 / ⌘2 / ⌘3)",
+  askContextPlaceholder: "Dán thêm code, lỗi, email… để AI hiểu ngữ cảnh (để trống nếu không cần)",
+  askSubmitHint: "Nhấn ↵ (hoặc ⌘↵) để gửi câu hỏi.",
+  askQuickPresetHint: "↵ Gửi câu hỏi · ⌘1 Giải thích · ⌘2 Tìm lỗi · ⌘3 Rút ý chính",
+  askEmptyError: "Vui lòng nhập câu hỏi",
+  askFollowUpTitle: "Hỏi nối tiếp",
+  askFollowUpPlaceholder: "Gõ câu hỏi tiếp theo dựa trên cuộc hội thoại hiện tại…",
+  askTurns: "Lượt hỏi",
+  askContextLabel: "Ngữ cảnh",
+  askContextAttached: "📎 Ngữ cảnh đính kèm",
+
+  // Buddy Vision
+  visionActionField: "Chế độ",
+  visionSourceField: "Nguồn",
+  visionImageField: "Ảnh",
+  visionCustomQuestionField: "💬 Câu hỏi riêng (tuỳ chọn)",
+  visionAskTitle: "Hỏi về bức ảnh",
+  visionAskPlaceholder: "Vd: chuyển bảng này sang Markdown, lỗi này do đâu…",
+  visionPickFileError: "Vui lòng chọn một file ảnh",
+  visionNoClipboard: "Không có ảnh trong Clipboard",
+  visionFormHint: "Chọn file ảnh rồi nhấn ⌘↵ · hoặc ⌘N chụp vùng màn hình · ⌘B dùng ảnh Clipboard.",
+  visionSwitchSection: "Đổi chế độ trên ảnh này",
+  visionSourceSection: "Ảnh & nguồn khác",
+  visionActionLabel: {
+    explain: "🔍 Giải thích",
+    ocr: "📝 Trích xuất text (OCR)",
+    translate: "🌐 Dịch ảnh",
+    summarize: "📋 Tóm tắt ảnh",
+    ask: "💬 Hỏi về ảnh",
+  } as Record<VisionAction, string>,
+  visionSourceLabel: {
+    screen: "Chụp màn hình",
+    clipboard: "Clipboard",
+    file: "File ảnh",
+  } as Record<VisionSource, string>,
 };
 
 type Strings = typeof vi;
@@ -162,12 +237,15 @@ const en: Strings = {
   runWith: (text) => `Run with: "${text}"`,
   hotkeyHint: "Suggested hotkey",
   inputHint: "Selected text, or type in the search bar",
+  visionInputHint: "Screen capture, clipboard image, or local image file",
   settingsSection: "Settings",
   featureSubtitle: {
     translate: "Vietnamese ⇄ English",
     reply: "Draft a reply",
     rewrite: "Fix English + learn",
     summarize: "TL;DR + Action Items",
+    ask: "Quick AI Q&A + follow-ups",
+    vision: "OCR, translate & explain images",
   },
   guide: {
     translate: `## 🌐 Buddy Translate
@@ -227,6 +305,31 @@ Or paste text in the search bar above and press **↵**.
 ### In the result
 - **↵** Copy summary · **⌘⇧V** Paste in app
 - **⌘T** Switch summary language (English ⇄ Tiếng Việt) · **⌘R** Summarize again`,
+    ask: `## 💬 Buddy Ask
+Fast AI Q&A right inside Raycast — supports multi-turn follow-ups and automatically attaches selected text as context.
+
+### How to use
+1. **Quick question:** Open Raycast → type \`Buddy Ask\` → enter your question → **↵**
+2. **Ask about selected text:** Highlight code, logs, or an email → press the hotkey → type a question (or press **⌘1** Explain · **⌘2** Find Bugs · **⌘3** Key Takeaways)
+
+### In the result
+- **↵** Copy answer · **⌘↵** Ask follow-up
+- **⌘⇧V** Paste in app · **⌘⇧K** Copy code block (when present)
+- **⌘R** Regenerate · **⌘N** New question`,
+    vision: `## 👁️ Buddy Vision
+Capture any screen region (or load an image from Clipboard / File) to **extract text (OCR), translate, explain UI errors/diagrams, or summarize**.
+
+### How to use
+1. Press the hotkey → drag to capture a screen region (press **Space** for a window, **Esc** to cancel)
+2. The image preview and AI analysis stream immediately
+3. Or use **Analyze Clipboard Image** (**⌘↵**) / **Choose Image File** (**⌘O**)
+
+### In the result
+- **↵** Copy result · **⌘↵** Ask a question about this image
+- **⌘1** OCR · **⌘2** Translate · **⌘3** Explain · **⌘4** Summarize
+- **⌘T** Toggle image preview · **⌘N** Capture new region · **⌘B** Use clipboard image
+
+*(Note: Requires a vision-capable model such as **Google Gemini** or **OpenAI**. macOS will ask for **Screen Recording** permission for Raycast on first capture.)*`,
   },
   promptsSubtitle: "Customize each buddy's prompt",
   promptsGuide: `## ✍️ Prompts
@@ -237,6 +340,8 @@ Press **↵** to view and edit each buddy's prompt: role, tone, pronoun rules, e
 - **Draft Reply** - reply drafts
 - **Polish English** - English fixes + lessons
 - **Summarize** - TL;DR, key points & action items
+- **Ask** - quick Q&A + follow-ups
+- **Vision** - screenshot & image analysis
 - **Vocabulary** - the Vocabulary panel for sentences
 
 The output format is kept fixed by the code, so edits can't break the screens. The default can always be restored (**⌃X**).
@@ -250,6 +355,7 @@ Press **↵** to open AI Buddy's settings in Raycast:
 - **API Key & Model** - configured per provider below; API keys are stored securely by Raycast (Keychain)
 - **Language** - interface language: Tiếng Việt / English
 - **Polish English Mode** - choose between Show Popup or Replace Immediately
+- **Vision Default Action** - default action when capturing an image with Buddy Vision (Explain / OCR / Translate / Summarize)
 - **Hotkey** - assign a hotkey to each command under Commands
 - **Voice** - the macOS system voice (Accessibility → Read & Speak)
 
@@ -258,7 +364,7 @@ Press **↵** to open AI Buddy's settings in Raycast:
 - **Edited prompts** - \`prompts.json\`
 - ⌘K → **Show Data Folder** to view · **Clear Dictionary Cache** to delete
 
-Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘S** Summarize`,
+Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘S** Summarize · **⌃⌘A** Ask · **⌃⌘V** Vision`,
 
   promptSubtitle: {
     translate: "Sentences and paragraphs",
@@ -266,6 +372,8 @@ Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E
     reply: "Reply drafts",
     rewrite: "English fixes + lessons",
     summarize: "TL;DR, key points & action items",
+    ask: "Quick Q&A + follow-ups",
+    vision: "Screenshot & image analysis",
     vocab: "Vocabulary panel for sentences",
   },
   edited: "Edited",
@@ -297,6 +405,44 @@ Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E
   summaryLanguage: "Language",
   originalLength: "Original length",
   formatLength: (words, chars) => `${words.toLocaleString("en-US")} words · ${chars.toLocaleString("en-US")} chars`,
+
+  askQuestionField: "❓ Question",
+  askContextField: "📎 Context (optional)",
+  askPlaceholder: "Ask anything (e.g. git command to undo last commit, explain OAuth2…)",
+  askWithContextPlaceholder: "Ask about the context below… (or press ⌘1 / ⌘2 / ⌘3)",
+  askContextPlaceholder: "Optional code, stack trace, email, or notes for context",
+  askSubmitHint: "Press ↵ (or ⌘↵) to ask.",
+  askQuickPresetHint: "↵ Ask · ⌘1 Explain · ⌘2 Find Bugs · ⌘3 Key Takeaways",
+  askEmptyError: "Please enter a question",
+  askFollowUpTitle: "Follow-up Question",
+  askFollowUpPlaceholder: "Ask a follow-up question in this conversation…",
+  askTurns: "Turns",
+  askContextLabel: "Context",
+  askContextAttached: "📎 Attached Context",
+
+  visionActionField: "Action",
+  visionSourceField: "Source",
+  visionImageField: "Image",
+  visionCustomQuestionField: "💬 Custom Question (optional)",
+  visionAskTitle: "Ask about Image",
+  visionAskPlaceholder: "e.g. convert this table to Markdown, why is this error happening…",
+  visionPickFileError: "Please choose an image file",
+  visionNoClipboard: "No image found in Clipboard",
+  visionFormHint: "Pick an image and press ⌘↵ · or ⌘N Capture Screen · ⌘B Use Clipboard Image.",
+  visionSwitchSection: "Switch Action on This Image",
+  visionSourceSection: "Image & Other Sources",
+  visionActionLabel: {
+    explain: "🔍 Explain",
+    ocr: "📝 Extract Text (OCR)",
+    translate: "🌐 Translate",
+    summarize: "📋 Summarize",
+    ask: "💬 Ask about Image",
+  },
+  visionSourceLabel: {
+    screen: "Screen Capture",
+    clipboard: "Clipboard",
+    file: "Image File",
+  },
 };
 
 export const getLanguage = (): Language =>

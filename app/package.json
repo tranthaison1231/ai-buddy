@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "ai-buddy",
   "title": "AI Buddy",
-  "description": "AI helpers for daily work: translate, reply and rewrite text with any OpenAI-compatible LLM",
+  "description": "AI helpers for daily work: translate, reply, polish, summarize, ask, and analyze images with any OpenAI-compatible LLM",
   "icon": "buddy.png",
   "author": "tranthaison1231",
   "platforms": [
@@ -74,9 +74,59 @@
       "icon": "buddy-summarize.png"
     },
     {
+      "name": "ask",
+      "title": "Buddy Ask",
+      "description": "Ask AI anything with multi-turn follow-ups and optional selected-text context",
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "question",
+          "placeholder": "Ask anything…",
+          "type": "text",
+          "required": false
+        }
+      ],
+      "icon": "buddy-ask.png"
+    },
+    {
+      "name": "vision",
+      "title": "Buddy Vision",
+      "description": "Capture a screen region, clipboard image, or file to OCR, translate, explain, or summarize",
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "prompt",
+          "placeholder": "Optional question about the image",
+          "type": "text",
+          "required": false
+        },
+        {
+          "name": "source",
+          "placeholder": "Source (default: Capture Screen)",
+          "type": "dropdown",
+          "required": false,
+          "data": [
+            {
+              "title": "Capture Screen",
+              "value": "screen"
+            },
+            {
+              "title": "Clipboard Image",
+              "value": "clipboard"
+            },
+            {
+              "title": "Choose File",
+              "value": "file"
+            }
+          ]
+        }
+      ],
+      "icon": "buddy-vision.png"
+    },
+    {
       "name": "result",
       "title": "Buddy Home",
-      "description": "Home: guide, settings and quick run for Translate / Draft Reply / Polish English / Summarize",
+      "description": "Home: guide, settings and quick run for all AI Buddy commands",
       "mode": "view",
       "icon": "buddy-home.png"
     }
@@ -141,6 +191,32 @@
         {
           "title": "Replace Immediately",
           "value": "replace"
+        }
+      ]
+    },
+    {
+      "name": "visionAction",
+      "title": "Vision Default Action",
+      "description": "Default action when Buddy Vision analyzes an image without a custom question.",
+      "type": "dropdown",
+      "required": false,
+      "default": "explain",
+      "data": [
+        {
+          "title": "Explain",
+          "value": "explain"
+        },
+        {
+          "title": "Extract Text (OCR)",
+          "value": "ocr"
+        },
+        {
+          "title": "Translate",
+          "value": "translate"
+        },
+        {
+          "title": "Summarize",
+          "value": "summarize"
         }
       ]
     },

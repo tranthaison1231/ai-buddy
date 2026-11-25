@@ -4,27 +4,39 @@ import {
   Color,
   environment,
   Icon,
+  Keyboard,
+  launchCommand,
+  LaunchType,
   List,
   openExtensionPreferences,
   showToast,
   Toast,
+  useNavigation,
 } from "@raycast/api";
 import { useState } from "react";
+import { AskForm, AskView } from "./ask-view";
+import { ui } from "./i18n";
 import { getConfig, getConfigError, isInsecureEndpoint } from "./llm";
 import { LLMView, Mode } from "./llm-view";
 import { clearLookupCache } from "./lookup";
-import { clearPronunciationCache } from "./pronounce";
 import { PromptList } from "./prompts-view";
-import { ui } from "./i18n";
+import { clearPronunciationCache } from "./pronounce";
+import { captureScreenRegion, readClipboardImage } from "./vision-io";
+import { VisionFileForm, VisionRequest, VisionView } from "./vision-view";
 
-const FEATURES: { mode: Mode; title: string; icon: string; hotkey: string }[] = [
+export type HomeFeatureId = Mode | "ask" | "vision";
+
+const FEATURES: { mode: HomeFeatureId; title: string; icon: string; hotkey: string }[] = [
   { mode: "translate", title: "Buddy Translate", icon: "buddy-translate.png", hotkey: "⌃⌘T" },
   { mode: "reply", title: "Buddy Draft Reply", icon: "buddy-draft-reply.png", hotkey: "⌃⌘R" },
   { mode: "rewrite", title: "Buddy Polish English", icon: "buddy-polish.png", hotkey: "⌃⌘E" },
   { mode: "summarize", title: "Buddy Summarize", icon: "buddy-summarize.png", hotkey: "⌃⌘S" },
+  { mode: "ask", title: "Buddy Ask", icon: "buddy-ask.png", hotkey: "⌃⌘A" },
+  { mode: "vision", title: "Buddy Vision", icon: "buddy-vision.png", hotkey: "⌃⌘V" },
 ];
 
 export function BuddyHome() {
+  const { push } = useNavigation();
   const cfg = getConfig();
   const { providerName, baseUrl, model } = cfg;
   const configError = getConfigError(cfg);
@@ -42,12 +54,92 @@ export function BuddyHome() {
     />
   );
 
+  const captureVision = async () => {
+    try {
+      const imagePath = await captureScreenRegion();
+      if (!imagePath) return;
+      const context: VisionRequest = {
+        mode: "vision",
+        imagePath,
+        source: "screen",
+        prompt: typed || undefined,
+        startedAt: Date.now(),
+      };
+      await launchCommand({ name: "result", type: LaunchType.UserInitiated, context });
+    } catch (e) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Screen capture failed",
+        message: e instanceof Error ? e.message : String(e),
+      });
+    }
+  };
+
+  const clipboardVision = async () => {
+    const imagePath = await readClipboardImage();
+    if (!imagePath) {
+      await showToast({ style: Toast.Style.Failure, title: t.visionNoClipboard });
+      return;
+    }
+    push(
+      <VisionView imagePath={imagePath} source="clipboard" initialPrompt={typed || undefined} startedAt={Date.now()} />,
+    );
+  };
+
+  const renderActions = (f: (typeof FEATURES)[number]) => {
+    if (f.mode === "ask") {
+      return (
+        <ActionPanel>
+          <Action.Push
+            title={typed ? `Run ${f.title}` : "Open Buddy Ask"}
+            icon={Icon.Play}
+            target={typed ? <AskView initialQuestion={typed} startedAt={Date.now()} /> : <AskForm />}
+          />
+          {typed && (
+            <Action.Push title="Use Input as Context" icon={Icon.Text} target={<AskForm initialContext={typed} />} />
+          )}
+          {settingsAction}
+        </ActionPanel>
+      );
+    }
+
+    if (f.mode === "vision") {
+      return (
+        <ActionPanel>
+          <Action title="Capture Screen Region" icon={Icon.Camera} onAction={captureVision} />
+          <Action title="Analyze Clipboard Image" icon={Icon.Clipboard} onAction={clipboardVision} />
+          <Action.Push
+            title="Choose Image File"
+            icon={Icon.Finder}
+            shortcut={Keyboard.Shortcut.Common.Open}
+            target={<VisionFileForm initialPrompt={typed} />}
+          />
+          {settingsAction}
+        </ActionPanel>
+      );
+    }
+
+    const mode = f.mode;
+    return (
+      <ActionPanel>
+        {typed ? (
+          <Action.Push
+            title={`Run ${f.title}`}
+            icon={Icon.Play}
+            target={<LLMView mode={mode} text={typed} startedAt={Date.now()} />}
+          />
+        ) : null}
+        {settingsAction}
+      </ActionPanel>
+    );
+  };
+
   return (
     <List
       isShowingDetail
       filtering={false}
       onSearchTextChange={setText}
-      searchBarPlaceholder="Input text, then pick a buddy and press ↵"
+      searchBarPlaceholder="Input text or question, then pick a buddy and press ↵"
       navigationTitle="AI Buddy"
     >
       <List.Section
@@ -67,25 +159,17 @@ export function BuddyHome() {
                     <List.Item.Detail.Metadata.TagList title={t.hotkeyHint}>
                       <List.Item.Detail.Metadata.TagList.Item text={f.hotkey} color={Color.Blue} />
                     </List.Item.Detail.Metadata.TagList>
-                    <List.Item.Detail.Metadata.Label title="Input" text={t.inputHint} />
+                    <List.Item.Detail.Metadata.Label
+                      title="Input"
+                      text={f.mode === "vision" ? t.visionInputHint : t.inputHint}
+                    />
                     <List.Item.Detail.Metadata.Label title="Provider" text={providerName} />
                     <List.Item.Detail.Metadata.Label title="Model" text={model || "—"} />
                   </List.Item.Detail.Metadata>
                 }
               />
             }
-            actions={
-              <ActionPanel>
-                {typed ? (
-                  <Action.Push
-                    title={`Run ${f.title}`}
-                    icon={Icon.Play}
-                    target={<LLMView mode={f.mode} text={typed} startedAt={Date.now()} />}
-                  />
-                ) : null}
-                {settingsAction}
-              </ActionPanel>
-            }
+            actions={renderActions(f)}
           />
         ))}
       </List.Section>

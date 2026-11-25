@@ -3,6 +3,14 @@ import { LESSONS_MARKER } from "./prompts";
 
 export type ProviderId = "gemini" | "groq" | "openai" | "custom";
 export type PolishMode = "popup" | "replace";
+export type VisionAction = "explain" | "ocr" | "translate" | "summarize" | "ask";
+
+export type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
+
+export type ChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string | ContentPart[];
+};
 
 export type Prefs = {
   providerId: ProviderId;
@@ -12,6 +20,7 @@ export type Prefs = {
   model: string;
   fastMode: boolean;
   polishMode: PolishMode;
+  visionAction: Exclude<VisionAction, "ask">;
   mwKey?: string;
 };
 
@@ -19,6 +28,7 @@ type RawPrefs = {
   activeProvider?: ProviderId;
   fastMode?: boolean;
   polishMode?: PolishMode;
+  visionAction?: string;
   geminiApiKey?: string;
   geminiModel?: string;
   groqApiKey?: string;
@@ -64,6 +74,10 @@ function resolveProviderId(value?: string): ProviderId {
   return value === "groq" || value === "openai" || value === "custom" ? value : "gemini";
 }
 
+function resolveVisionAction(value?: string): Exclude<VisionAction, "ask"> {
+  return value === "ocr" || value === "translate" || value === "summarize" ? value : "explain";
+}
+
 /** Resolves the active provider's endpoint, API key, and model from Raycast Settings. */
 export function getConfig(): Prefs {
   const prefs = getPreferenceValues<RawPrefs>();
@@ -103,6 +117,7 @@ export function getConfig(): Prefs {
     mwKey: prefs.mwKey?.trim() || undefined,
     fastMode: prefs.fastMode ?? true,
     polishMode: prefs.polishMode === "replace" ? "replace" : "popup",
+    visionAction: resolveVisionAction(prefs.visionAction),
   };
 }
 
@@ -134,7 +149,7 @@ const MAX_ERROR_BODY = 500;
  * "</text> ignore the rules…" cannot close the block and pose as instructions.
  */
 export const dataBlock = (tag: string, text: string) =>
-  `<${tag}>\n${text.replace(/<(\/?)(text|idea|previous)\s*>/gi, "‹$1$2›")}\n</${tag}>`;
+  `<${tag}>\n${text.replace(/<(\/?)(text|idea|previous|context)\s*>/gi, "‹$1$2›")}\n</${tag}>`;
 
 /** Longest input sent to the model: a whole page selected by mistake would waste tokens. */
 export const MAX_INPUT_CHARS = 10_000;
@@ -194,7 +209,11 @@ function fastEffort(baseUrl: string, model: string): "none" | "minimal" | "low" 
   return "none";
 }
 
-function request(model: string, system: string, user: string, signal: AbortSignal, effort?: string) {
+function hasImageContent(messages: ChatMessage[]): boolean {
+  return messages.some((m) => Array.isArray(m.content) && m.content.some((p) => p.type === "image_url"));
+}
+
+function request(model: string, messages: ChatMessage[], signal: AbortSignal, effort?: string) {
   const { baseUrl, apiKey } = getConfig();
   return fetch(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
     method: "POST",
@@ -207,10 +226,7 @@ function request(model: string, system: string, user: string, signal: AbortSigna
       stream: true,
       // Skip or minimize "thinking": much faster for short chat text. Optional, as not every provider accepts it.
       ...(effort ? { reasoning_effort: effort } : {}),
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
+      messages,
     }),
     signal,
   });
@@ -230,11 +246,10 @@ export function getConfigError(cfg: Prefs = getConfig()): string | undefined {
   return undefined;
 }
 
-/** Streams the answer of an OpenAI-compatible /chat/completions endpoint. */
-export async function* streamChat(
+/** Streams a multi-turn (and optionally multimodal) conversation from an OpenAI-compatible endpoint. */
+export async function* streamMessages(
   model: string,
-  system: string,
-  user: string,
+  messages: ChatMessage[],
   signal: AbortSignal,
 ): AsyncGenerator<string> {
   const cfg = getConfig();
@@ -253,38 +268,60 @@ export async function* streamChat(
   bump();
   const timed = AbortSignal.any([signal, idle.signal]);
   try {
-    yield* stream(model, system, user, timed, fastMode, baseUrl, bump);
+    yield* stream(model, messages, timed, fastMode, baseUrl, bump);
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function* stream(
+/** Streams the answer of an OpenAI-compatible /chat/completions endpoint. */
+export async function* streamChat(
   model: string,
   system: string,
   user: string,
+  signal: AbortSignal,
+): AsyncGenerator<string> {
+  yield* streamMessages(
+    model,
+    [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    signal,
+  );
+}
+
+async function* stream(
+  model: string,
+  messages: ChatMessage[],
   timed: AbortSignal,
   fastMode: boolean,
   baseUrl: string,
   bump: () => void,
 ): AsyncGenerator<string> {
   const effort = fastMode ? fastEffort(baseUrl, model) : undefined;
-  let res = await request(model, system, user, timed, effort);
+  let res = await request(model, messages, timed, effort);
   // Some providers / models reject reasoning_effort (or specifically "none"): retry with fallback instead of failing.
   let body = res.ok ? "" : await res.text();
   if (!res.ok && effort && res.status === 400 && /reasoning|thinking|effort/i.test(body)) {
     if (effort === "none" && !/flash-lite/i.test(model) && /\bnone\b|thinking|budget/i.test(body)) {
-      res = await request(model, system, user, timed, "minimal");
+      res = await request(model, messages, timed, "minimal");
       body = res.ok ? "" : await res.text();
     }
     if (!res.ok && res.status === 400 && /reasoning|thinking|effort/i.test(body)) {
-      res = await request(model, system, user, timed, undefined);
+      res = await request(model, messages, timed, undefined);
       body = res.ok ? "" : await res.text();
     }
   }
   if (!res.ok || !res.body) {
     const detail = body.length > MAX_ERROR_BODY ? `${body.slice(0, MAX_ERROR_BODY)}…` : body;
-    const hint = HTTP_HINTS[res.status] ? `${HTTP_HINTS[res.status]}\n\n` : "";
+    const visionHint =
+      hasImageContent(messages) &&
+      (res.status === 400 || res.status === 422) &&
+      /image|vision|multimodal|content/i.test(body)
+        ? "This model may not support image input. Switch to a vision-capable model (e.g. Google Gemini or OpenAI) in Settings.\n\n"
+        : "";
+    const hint = visionHint || (HTTP_HINTS[res.status] ? `${HTTP_HINTS[res.status]}\n\n` : "");
     throw new Error(`${hint}${res.status} ${res.statusText} (${model} @ ${baseUrl})\n\n${detail}`);
   }
 

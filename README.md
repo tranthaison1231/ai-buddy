@@ -1,6 +1,6 @@
 # AI Buddy
 
-AI Buddy is a Raycast extension for macOS that supports Vietnamese ⇄ English translation, English reply drafting, English writing refinement, and text/thread summarization using any OpenAI-compatible LLM.
+AI Buddy is a Raycast extension for macOS that supports Vietnamese ⇄ English translation, English reply drafting, English writing refinement, text/thread summarization, quick multi-turn AI Q&A, and screenshot/image vision analysis using any OpenAI-compatible LLM.
 
 ## Prerequisites
 
@@ -39,6 +39,7 @@ Installation typically takes approximately 2 minutes.
    - You can save keys for multiple providers and switch between them anytime using the **Active Provider** dropdown.
 3. *(Optional)* To switch the interface language to English, set **Language** to **English**.
 4. *(Optional)* To have **Buddy Polish English** replace selected text immediately without opening the popup, set **Polish English Mode** to **Replace Immediately**.
+5. *(Optional)* Choose the default mode for **Buddy Vision** under **Vision Default Action** (**Explain**, **Extract Text (OCR)**, **Translate**, or **Summarize**).
 
 ## Recommended Hotkeys
 
@@ -50,12 +51,15 @@ Assigning hotkeys makes AI Buddy significantly faster to use. Open **Raycast →
 | **Buddy Draft Reply** | `⌃⌘R` | Draft an English reply based on the selected message |
 | **Buddy Polish English** | `⌃⌘E` | Refine and polish the selected English draft |
 | **Buddy Summarize** | `⌃⌘S` | Summarize the selected thread, email, or document into TL;DR, key points, and action items |
+| **Buddy Ask** | `⌃⌘A` | Ask AI anything with multi-turn follow-ups and optional selected-text context |
+| **Buddy Vision** | `⌃⌘V` | Capture a screen region (or use Clipboard / File) to OCR, translate, explain, or summarize images |
 
 ## Usage
 
 - Highlight text in any application and press the corresponding hotkey.
 - If no text is selected, AI Buddy opens an input dialog where you can type or paste your text directly.
-- On first use of a hotkey, macOS may ask for **Accessibility** permission for Raycast. Please grant this permission so Raycast can read your selected text.
+- For **Buddy Vision**, drag to capture a screen region (press **Space** to select a window, **Esc** to cancel), or choose **Clipboard Image** / **Choose File** in the command argument or from **Buddy Home**. Note that **Buddy Vision** requires a vision-capable model (such as Google Gemini or OpenAI).
+- On first use, macOS may ask for **Accessibility** permission (to read selected text) and **Screen Recording** permission (for **Buddy Vision**) for Raycast.
 
 ## Updating
 
