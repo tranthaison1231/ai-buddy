@@ -24,6 +24,13 @@ const LABELS: Record<Mode, { title: string; action: string; field: string; place
     placeholder: "Input draft",
     icon: "buddy-polish.png",
   },
+  summarize: {
+    title: "Buddy Summarize",
+    action: "Summarize",
+    field: "📝 Text",
+    placeholder: "Paste thread, email, or document to summarize",
+    icon: "buddy-summarize.png",
+  },
 };
 
 /** Shown when a command runs with nothing typed and nothing selected: type the text, then run. */

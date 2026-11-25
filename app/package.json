@@ -4,7 +4,7 @@
   "title": "AI Buddy",
   "description": "AI helpers for daily work: translate, reply and rewrite text with any OpenAI-compatible LLM",
   "icon": "buddy.png",
-  "author": "hoang_tran",
+  "author": "tranthaison1231",
   "platforms": [
     "macOS"
   ],
@@ -59,14 +59,55 @@
       "icon": "buddy-polish.png"
     },
     {
+      "name": "summarize",
+      "title": "Buddy Summarize",
+      "description": "Summarize selected text, chat threads, emails, or docs into TL;DR, key points, and action items",
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "text",
+          "placeholder": "Input text to summarize",
+          "type": "text",
+          "required": false
+        }
+      ],
+      "icon": "buddy-summarize.png"
+    },
+    {
       "name": "result",
       "title": "Buddy Home",
-      "description": "Home: guide, settings and quick run for Translate / Draft Reply / Polish English",
+      "description": "Home: guide, settings and quick run for Translate / Draft Reply / Polish English / Summarize",
       "mode": "view",
       "icon": "buddy-home.png"
     }
   ],
   "preferences": [
+    {
+      "name": "activeProvider",
+      "title": "Active Provider",
+      "description": "Select which AI provider to use. Configure its API key and model in the matching section below.",
+      "type": "dropdown",
+      "required": false,
+      "default": "gemini",
+      "data": [
+        {
+          "title": "Google Gemini",
+          "value": "gemini"
+        },
+        {
+          "title": "Groq",
+          "value": "groq"
+        },
+        {
+          "title": "OpenAI",
+          "value": "openai"
+        },
+        {
+          "title": "Custom",
+          "value": "custom"
+        }
+      ]
+    },
     {
       "name": "language",
       "title": "Language",
@@ -86,38 +127,6 @@
       ]
     },
     {
-      "name": "baseUrl",
-      "title": "Base URL",
-      "description": "OpenAI-compatible endpoint: OpenAI, OpenRouter, Ollama (http://localhost:11434/v1), LiteLLM…",
-      "type": "textfield",
-      "required": false,
-      "placeholder": "Leave empty to use the shared setup"
-    },
-    {
-      "name": "apiKey",
-      "title": "API Key",
-      "type": "password",
-      "required": true,
-      "description": "Your API key for the endpoint"
-    },
-    {
-      "name": "model",
-      "title": "Model",
-      "type": "textfield",
-      "required": false,
-      "description": "Model name at the endpoint. A small, fast model is enough.",
-      "placeholder": "Leave empty to use the shared setup (e.g. gpt-5-mini)"
-    },
-    {
-      "name": "fastMode",
-      "title": "Speed",
-      "label": "Skip model thinking (faster)",
-      "description": "Sends reasoning_effort: none (retried without it if the provider rejects it).",
-      "type": "checkbox",
-      "default": true,
-      "required": false
-    },
-    {
       "name": "polishMode",
       "title": "Polish English Mode",
       "description": "Choose whether Buddy Polish English opens the review popup or replaces the selected text immediately.",
@@ -134,6 +143,86 @@
           "value": "replace"
         }
       ]
+    },
+    {
+      "name": "fastMode",
+      "title": "Speed",
+      "label": "Skip model thinking (faster)",
+      "description": "Disables or minimizes model thinking where supported (retried without it if unsupported).",
+      "type": "checkbox",
+      "default": true,
+      "required": false
+    },
+    {
+      "name": "geminiApiKey",
+      "title": "Google Gemini · API Key",
+      "description": "API key from Google AI Studio (aistudio.google.com).",
+      "type": "password",
+      "required": false
+    },
+    {
+      "name": "geminiModel",
+      "title": "Google Gemini · Model",
+      "description": "Model name for Google Gemini.",
+      "type": "textfield",
+      "default": "gemini-3.5-flash-lite",
+      "placeholder": "gemini-3.5-flash-lite",
+      "required": false
+    },
+    {
+      "name": "groqApiKey",
+      "title": "Groq · API Key",
+      "description": "API key from Groq Console (console.groq.com).",
+      "type": "password",
+      "required": false
+    },
+    {
+      "name": "groqModel",
+      "title": "Groq · Model",
+      "description": "Model name for Groq (e.g. qwen/qwen3.8-27b or openai/gpt-oss-20b).",
+      "type": "textfield",
+      "default": "qwen/qwen3.8-27b",
+      "placeholder": "qwen/qwen3.8-27b",
+      "required": false
+    },
+    {
+      "name": "openaiApiKey",
+      "title": "OpenAI · API Key",
+      "description": "API key from OpenAI Platform (platform.openai.com).",
+      "type": "password",
+      "required": false
+    },
+    {
+      "name": "openaiModel",
+      "title": "OpenAI · Model",
+      "description": "Model name for OpenAI (e.g. gpt-5-mini or gpt-4.1-nano).",
+      "type": "textfield",
+      "default": "gpt-5-mini",
+      "placeholder": "gpt-5-mini",
+      "required": false
+    },
+    {
+      "name": "customBaseUrl",
+      "title": "Custom · Base URL",
+      "description": "OpenAI-compatible endpoint for Cerebras, OpenRouter, Ollama (http://localhost:11434/v1), LiteLLM…",
+      "type": "textfield",
+      "placeholder": "https://api.cerebras.ai/v1",
+      "required": false
+    },
+    {
+      "name": "customApiKey",
+      "title": "Custom · API Key",
+      "description": "API key for the custom endpoint (leave empty for local Ollama).",
+      "type": "password",
+      "required": false
+    },
+    {
+      "name": "customModel",
+      "title": "Custom · Model",
+      "description": "Model name at the custom endpoint.",
+      "type": "textfield",
+      "placeholder": "e.g. qwen-3.8-27b",
+      "required": false
     },
     {
       "name": "mwKey",

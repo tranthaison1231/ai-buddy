@@ -20,6 +20,7 @@ const vi = {
     translate: "Việt ⇄ Anh",
     reply: "Soạn nháp câu trả lời",
     rewrite: "Sửa tiếng Anh + học",
+    summarize: "Tóm tắt + Action Items",
   } as Record<Mode, string>,
   guide: {
     translate: `## 🌐 Buddy Translate
@@ -67,6 +68,18 @@ Viết lại draft tiếng Anh cho đúng ngữ pháp, tự nhiên. Kèm **📘 
 - **⌘R** Viết lại từ đầu
 
 *(Mẹo: Vào **Settings → Polish English Mode** chọn **Replace Immediately** nếu muốn bấm hotkey là thay thế ngay không cần mở popup.)*`,
+    summarize: `## 📋 Buddy Summarize
+Tóm tắt nhanh thread Slack/Teams, email, tài liệu hoặc ticket dài thành **TL;DR**, **Key Points** và **Action Items** (nếu có).
+
+### Cách dùng
+1. Bôi đen đoạn hội thoại / email / tài liệu ở bất kỳ app nào
+2. Bấm hotkey, bản tóm tắt hiện ra ngay theo ngôn ngữ giao diện
+
+Hoặc dán nội dung vào ô tìm kiếm phía trên rồi bấm **↵**.
+
+### Trong màn hình kết quả
+- **↵** Copy bản tóm tắt · **⌘⇧V** Dán vào app
+- **⌘T** Đổi ngôn ngữ tóm tắt (Tiếng Việt ⇄ English) · **⌘R** Tóm tắt lại`,
   } as Record<Mode, string>,
   promptsSubtitle: "Tuỳ chỉnh prompt từng buddy",
   promptsGuide: `## ✍️ Prompts
@@ -76,21 +89,21 @@ Nhấn **↵** để xem và sửa prompt của từng buddy: vai trò, giọng 
 - **Dictionary Lookup** - thẻ từ điển khi tra từ / cụm ≤ 3 từ
 - **Draft Reply** - soạn câu trả lời
 - **Polish English** - sửa tiếng Anh + bài học
+- **Summarize** - tóm tắt + Action Items
 - **Vocabulary** - cột Từ vựng khi dịch câu
 
 Phần định dạng output được code giữ cố định, nên sửa thoải mái không làm hỏng giao diện. Bản mặc định luôn khôi phục được (**⌃X**).
 
 Lưu ở \`prompts.json\` trong Data Folder.`,
-  settingsSubtitle: "Ngôn ngữ, API key, model, hotkey",
+  settingsSubtitle: "Provider, API key, model, ngôn ngữ, hotkey",
   settingsGuide: `## ⚙️ Settings
 Nhấn **↵** để mở trang cài đặt của AI Buddy trong Raycast:
 
-- **Base URL** - endpoint OpenAI-compatible (cliproxy, Ollama…)
-- **API Key** - lưu trong Raycast (Keychain)
-- **Model** - đổi model không cần sửa code
+- **Active Provider** - chọn nhanh **Google Gemini**, **Groq**, **OpenAI**, hoặc **Custom** (Cerebras, OpenRouter, Ollama…)
+- **API Key & Model** - cấu hình riêng cho từng provider ngay bên dưới, API key được Raycast lưu bảo mật trong Keychain
 - **Language** - ngôn ngữ giao diện: Tiếng Việt / English
 - **Polish English Mode** - chọn mở popup xem trước (Show Popup) hoặc thay thế ngay (Replace Immediately)
-- **Hotkey** - gán phím tắt cho từng lệnh ở cột bên phải
+- **Hotkey** - gán phím tắt cho từng lệnh ở mục Commands
 - **Giọng đọc** - theo System voice của macOS (Accessibility → Read & Speak)
 
 ### Dữ liệu lưu trên máy
@@ -98,7 +111,7 @@ Nhấn **↵** để mở trang cài đặt của AI Buddy trong Raycast:
 - **Prompt đã sửa** - \`prompts.json\`
 - ⌘K → **Show Data Folder** để xem · **Clear Dictionary Cache** để xoá
 
-Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English`,
+Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘S** Summarize`,
 
   // Prompts screen
   promptSubtitle: {
@@ -106,6 +119,7 @@ Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E**
     lookup: "Tra từ / cụm ≤ 3 từ",
     reply: "Soạn câu trả lời",
     rewrite: "Sửa tiếng Anh + bài học",
+    summarize: "Tóm tắt + Action Items",
     vocab: "Cột Từ vựng khi dịch câu",
   } as Record<PromptId, string>,
   edited: "Đã sửa",
@@ -134,6 +148,11 @@ Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E**
   clipped: (max: string) => `Text quá dài: chỉ gửi ${max} ký tự đầu`,
   insecure: "Base URL dùng http://: API key và nội dung gửi đi không được mã hoá",
   insecureShort: "⚠️ http không mã hoá",
+  notConfigured: "⚠️ Chưa cấu hình",
+  summaryLanguage: "Ngôn ngữ",
+  originalLength: "Độ dài gốc",
+  formatLength: (words: number, chars: number) =>
+    `${words.toLocaleString("en-US")} từ · ${chars.toLocaleString("en-US")} ký tự`,
 };
 
 type Strings = typeof vi;
@@ -144,7 +163,12 @@ const en: Strings = {
   hotkeyHint: "Suggested hotkey",
   inputHint: "Selected text, or type in the search bar",
   settingsSection: "Settings",
-  featureSubtitle: { translate: "Vietnamese ⇄ English", reply: "Draft a reply", rewrite: "Fix English + learn" },
+  featureSubtitle: {
+    translate: "Vietnamese ⇄ English",
+    reply: "Draft a reply",
+    rewrite: "Fix English + learn",
+    summarize: "TL;DR + Action Items",
+  },
   guide: {
     translate: `## 🌐 Buddy Translate
 Fast translation with language detection: Vietnamese → English, anything else → Vietnamese. Tech terms (PR, deploy, ticket…) are kept as they are.
@@ -191,6 +215,18 @@ Rewrites an English draft into correct, natural English. Plus **📘 Lessons**: 
 - **⌘R** Start over
 
 *(Tip: Choose **Replace Immediately** in **Settings → Polish English Mode** to replace selected text directly without opening the popup.)*`,
+    summarize: `## 📋 Buddy Summarize
+Condenses long Slack/Teams threads, emails, docs, or specs into a clean **TL;DR**, **Key Points**, and **Action Items** (when present).
+
+### How to use
+1. Select a thread, email, or document in any app
+2. Press the hotkey: the structured summary streams right away
+
+Or paste text in the search bar above and press **↵**.
+
+### In the result
+- **↵** Copy summary · **⌘⇧V** Paste in app
+- **⌘T** Switch summary language (English ⇄ Tiếng Việt) · **⌘R** Summarize again`,
   },
   promptsSubtitle: "Customize each buddy's prompt",
   promptsGuide: `## ✍️ Prompts
@@ -200,21 +236,21 @@ Press **↵** to view and edit each buddy's prompt: role, tone, pronoun rules, e
 - **Dictionary Lookup** - the dictionary card for words / phrases of ≤ 3 words
 - **Draft Reply** - reply drafts
 - **Polish English** - English fixes + lessons
+- **Summarize** - TL;DR, key points & action items
 - **Vocabulary** - the Vocabulary panel for sentences
 
 The output format is kept fixed by the code, so edits can't break the screens. The default can always be restored (**⌃X**).
 
 Saved in \`prompts.json\` in the Data Folder.`,
-  settingsSubtitle: "Language, API key, model, hotkeys",
+  settingsSubtitle: "Provider, API key, model, language, hotkeys",
   settingsGuide: `## ⚙️ Settings
 Press **↵** to open AI Buddy's settings in Raycast:
 
-- **Base URL** - OpenAI-compatible endpoint (cliproxy, Ollama…)
-- **API Key** - stored by Raycast (Keychain)
-- **Model** - switch models without code changes
+- **Active Provider** - switch between **Google Gemini**, **Groq**, **OpenAI**, or **Custom** (Cerebras, OpenRouter, Ollama…)
+- **API Key & Model** - configured per provider below; API keys are stored securely by Raycast (Keychain)
 - **Language** - interface language: Tiếng Việt / English
 - **Polish English Mode** - choose between Show Popup or Replace Immediately
-- **Hotkey** - assign a hotkey to each command in the right column
+- **Hotkey** - assign a hotkey to each command under Commands
 - **Voice** - the macOS system voice (Accessibility → Read & Speak)
 
 ### Data on this Mac
@@ -222,13 +258,14 @@ Press **↵** to open AI Buddy's settings in Raycast:
 - **Edited prompts** - \`prompts.json\`
 - ⌘K → **Show Data Folder** to view · **Clear Dictionary Cache** to delete
 
-Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English`,
+Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘S** Summarize`,
 
   promptSubtitle: {
     translate: "Sentences and paragraphs",
     lookup: "Words / phrases of ≤ 3 words",
     reply: "Reply drafts",
     rewrite: "English fixes + lessons",
+    summarize: "TL;DR, key points & action items",
     vocab: "Vocabulary panel for sentences",
   },
   edited: "Edited",
@@ -256,7 +293,14 @@ Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E
   clipped: (max) => `Text too long: only the first ${max} characters are sent`,
   insecure: "Base URL uses http://: the API key and your text are sent unencrypted",
   insecureShort: "⚠️ http, not encrypted",
+  notConfigured: "⚠️ Not configured",
+  summaryLanguage: "Language",
+  originalLength: "Original length",
+  formatLength: (words, chars) => `${words.toLocaleString("en-US")} words · ${chars.toLocaleString("en-US")} chars`,
 };
 
+export const getLanguage = (): Language =>
+  getPreferenceValues<{ language?: Language }>().language === "en" ? "en" : "vi";
+
 /** Strings for the language chosen in Settings (read on each render, so a change applies on reopen). */
-export const ui = (): Strings => (getPreferenceValues<{ language?: Language }>().language === "en" ? en : vi);
+export const ui = (): Strings => (getLanguage() === "en" ? en : vi);

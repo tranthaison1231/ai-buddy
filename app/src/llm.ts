@@ -1,11 +1,12 @@
-import { environment, getPreferenceValues } from "@raycast/api";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { getPreferenceValues } from "@raycast/api";
 import { LESSONS_MARKER } from "./prompts";
 
+export type ProviderId = "gemini" | "groq" | "openai" | "custom";
 export type PolishMode = "popup" | "replace";
 
 export type Prefs = {
+  providerId: ProviderId;
+  providerName: string;
   baseUrl: string;
   apiKey: string;
   model: string;
@@ -14,29 +15,91 @@ export type Prefs = {
   mwKey?: string;
 };
 
-type Shared = Partial<Pick<Prefs, "baseUrl" | "model">>; // keys are never shared: each user enters their own
+type RawPrefs = {
+  activeProvider?: ProviderId;
+  fastMode?: boolean;
+  polishMode?: PolishMode;
+  geminiApiKey?: string;
+  geminiModel?: string;
+  groqApiKey?: string;
+  groqModel?: string;
+  openaiApiKey?: string;
+  openaiModel?: string;
+  customBaseUrl?: string;
+  customApiKey?: string;
+  customModel?: string;
+  mwKey?: string;
+};
 
-/** Shared endpoint + model bundled by the installer (assets/buddy.config.json); missing = {}. */
-function sharedConfig(): Shared {
-  try {
-    return JSON.parse(readFileSync(join(environment.assetsPath, "buddy.config.json"), "utf8"));
-  } catch {
-    return {};
-  }
+type ProviderMeta = {
+  name: string;
+  baseUrl: string;
+  defaultModel: string;
+};
+
+const PROVIDERS: Record<ProviderId, ProviderMeta> = {
+  gemini: {
+    name: "Google Gemini",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    defaultModel: "gemini-3.5-flash-lite",
+  },
+  groq: {
+    name: "Groq",
+    baseUrl: "https://api.groq.com/openai/v1",
+    defaultModel: "qwen/qwen3.8-27b",
+  },
+  openai: {
+    name: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    defaultModel: "gpt-5-mini",
+  },
+  custom: {
+    name: "Custom",
+    baseUrl: "",
+    defaultModel: "",
+  },
+};
+
+function resolveProviderId(value?: string): ProviderId {
+  return value === "groq" || value === "openai" || value === "custom" ? value : "gemini";
 }
 
-/**
- * Settings: what the user typed in Raycast Settings wins; Base URL and Model fall back to the
- * shared setup from the installer, so a new user only enters their API key.
- */
+/** Resolves the active provider's endpoint, API key, and model from Raycast Settings. */
 export function getConfig(): Prefs {
-  const prefs = getPreferenceValues<Partial<Prefs>>();
-  const shared = sharedConfig();
-  const pick = (k: keyof Shared) => prefs[k]?.trim() || shared[k]?.trim() || "";
+  const prefs = getPreferenceValues<RawPrefs>();
+  const providerId = resolveProviderId(prefs.activeProvider);
+  const meta = PROVIDERS[providerId];
+
+  const byProvider: Record<ProviderId, { baseUrl: string; apiKey: string; model: string }> = {
+    gemini: {
+      baseUrl: meta.baseUrl,
+      apiKey: prefs.geminiApiKey?.trim() ?? "",
+      model: prefs.geminiModel?.trim() || PROVIDERS.gemini.defaultModel,
+    },
+    groq: {
+      baseUrl: meta.baseUrl,
+      apiKey: prefs.groqApiKey?.trim() ?? "",
+      model: prefs.groqModel?.trim() || PROVIDERS.groq.defaultModel,
+    },
+    openai: {
+      baseUrl: meta.baseUrl,
+      apiKey: prefs.openaiApiKey?.trim() ?? "",
+      model: prefs.openaiModel?.trim() || PROVIDERS.openai.defaultModel,
+    },
+    custom: {
+      baseUrl: prefs.customBaseUrl?.trim() ?? "",
+      apiKey: prefs.customApiKey?.trim() ?? "",
+      model: prefs.customModel?.trim() ?? "",
+    },
+  };
+
+  const active = byProvider[providerId];
   return {
-    baseUrl: pick("baseUrl"),
-    apiKey: prefs.apiKey?.trim() ?? "",
-    model: pick("model"),
+    providerId,
+    providerName: meta.name,
+    baseUrl: active.baseUrl,
+    apiKey: active.apiKey,
+    model: active.model,
     mwKey: prefs.mwKey?.trim() || undefined,
     fastMode: prefs.fastMode ?? true,
     polishMode: prefs.polishMode === "replace" ? "replace" : "popup",
@@ -81,13 +144,21 @@ export function clipInput(text: string): { text: string; clipped: boolean } {
   return { text: text.slice(0, MAX_INPUT_CHARS), clipped: true };
 }
 
+function isLocalEndpoint(baseUrl: string): boolean {
+  try {
+    const host = new URL(baseUrl).hostname.replace(/^\[|\]$/g, "");
+    return host === "localhost" || host === "::1" || host.startsWith("127.") || host.endsWith(".local");
+  } catch {
+    return false;
+  }
+}
+
 /** Plain http to a non-local host sends the API key and the text unencrypted. */
 export function isInsecureEndpoint(baseUrl: string): boolean {
   try {
     const url = new URL(baseUrl);
     if (url.protocol !== "http:") return false;
-    const host = url.hostname.replace(/^\[|\]$/g, "");
-    return !(host === "localhost" || host === "::1" || host.startsWith("127.") || host.endsWith(".local"));
+    return !isLocalEndpoint(baseUrl);
   } catch {
     return false;
   }
@@ -100,16 +171,42 @@ const HTTP_HINTS: Record<number, string> = {
   429: "Rate limit or quota reached: try again in a moment.",
 };
 
-function request(model: string, system: string, user: string, signal: AbortSignal, fast: boolean) {
+function isGoogleEndpoint(baseUrl: string): boolean {
+  try {
+    return new URL(baseUrl).hostname === "generativelanguage.googleapis.com";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Lowest reasoning effort for fastMode:
+ * - Google Flash-Lite models already default to minimal/off thinking; omit reasoning_effort.
+ * - Google Gemini 2.5 Pro and Gemini 3+ reject "none"; use "minimal".
+ * - GPT-OSS models only accept "low" | "medium" | "high" (default "medium"); use "low".
+ */
+function fastEffort(baseUrl: string, model: string): "none" | "minimal" | "low" | undefined {
+  if (isGoogleEndpoint(baseUrl)) {
+    if (/(?:^|\/)gemini-.*flash-lite/i.test(model)) return undefined;
+    if (/(?:^|\/)gemini-(?:[3-9]|2\.5-pro)/i.test(model)) return "minimal";
+  }
+  if (/(?:^|\/)gpt-oss-/i.test(model)) return "low";
+  return "none";
+}
+
+function request(model: string, system: string, user: string, signal: AbortSignal, effort?: string) {
   const { baseUrl, apiKey } = getConfig();
   return fetch(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       model,
       stream: true,
-      // Skip "thinking": much faster for short chat text. Optional, as not every provider accepts it.
-      ...(fast ? { reasoning_effort: "none" } : {}),
+      // Skip or minimize "thinking": much faster for short chat text. Optional, as not every provider accepts it.
+      ...(effort ? { reasoning_effort: effort } : {}),
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -119,6 +216,20 @@ function request(model: string, system: string, user: string, signal: AbortSigna
   });
 }
 
+/** Returns a human-readable setup error if the active provider is missing required config. */
+export function getConfigError(cfg: Prefs = getConfig()): string | undefined {
+  if (!cfg.baseUrl) {
+    return `Missing Base URL for ${cfg.providerName}: open Settings (⌘⇧,) and fill in "${cfg.providerName} · Base URL".`;
+  }
+  if (!cfg.model) {
+    return `Missing Model for ${cfg.providerName}: open Settings (⌘⇧,) and fill in "${cfg.providerName} · Model".`;
+  }
+  if (!cfg.apiKey && !isLocalEndpoint(cfg.baseUrl)) {
+    return `Missing API Key for ${cfg.providerName}: open Settings (⌘⇧,) and fill in "${cfg.providerName} · API Key".`;
+  }
+  return undefined;
+}
+
 /** Streams the answer of an OpenAI-compatible /chat/completions endpoint. */
 export async function* streamChat(
   model: string,
@@ -126,9 +237,10 @@ export async function* streamChat(
   user: string,
   signal: AbortSignal,
 ): AsyncGenerator<string> {
-  const { baseUrl, fastMode } = getConfig();
-  if (!baseUrl || !model)
-    throw new Error("AI Buddy is not set up yet: open Buddy Home → Settings and fill in Base URL, API Key and Model.");
+  const cfg = getConfig();
+  const configError = getConfigError({ ...cfg, model });
+  if (configError) throw new Error(configError);
+  const { baseUrl, fastMode } = cfg;
   const idle = new AbortController();
   let timer: NodeJS.Timeout | undefined;
   const bump = () => {
@@ -156,12 +268,19 @@ async function* stream(
   baseUrl: string,
   bump: () => void,
 ): AsyncGenerator<string> {
-  let res = await request(model, system, user, timed, fastMode);
-  // Some providers / models reject reasoning_effort: retry once without it instead of failing.
+  const effort = fastMode ? fastEffort(baseUrl, model) : undefined;
+  let res = await request(model, system, user, timed, effort);
+  // Some providers / models reject reasoning_effort (or specifically "none"): retry with fallback instead of failing.
   let body = res.ok ? "" : await res.text();
-  if (!res.ok && fastMode && res.status === 400 && /reasoning/i.test(body)) {
-    res = await request(model, system, user, timed, false);
-    body = res.ok ? "" : await res.text();
+  if (!res.ok && effort && res.status === 400 && /reasoning|thinking|effort/i.test(body)) {
+    if (effort === "none" && !/flash-lite/i.test(model) && /\bnone\b|thinking|budget/i.test(body)) {
+      res = await request(model, system, user, timed, "minimal");
+      body = res.ok ? "" : await res.text();
+    }
+    if (!res.ok && res.status === 400 && /reasoning|thinking|effort/i.test(body)) {
+      res = await request(model, system, user, timed, undefined);
+      body = res.ok ? "" : await res.text();
+    }
   }
   if (!res.ok || !res.body) {
     const detail = body.length > MAX_ERROR_BODY ? `${body.slice(0, MAX_ERROR_BODY)}…` : body;

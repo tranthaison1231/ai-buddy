@@ -21,11 +21,11 @@ import {
   streamChat,
 } from "./llm";
 import { getCachedLookup, isLookupText, parseLookup, setCachedLookup } from "./lookup";
-import { ui } from "./i18n";
-import { systemPrompt } from "./prompts";
+import { getLanguage, ui } from "./i18n";
+import { systemPrompt, Target } from "./prompts";
 import { cambridgeUrl, loadPronunciations, Pron, speak } from "./pronounce";
 
-export type Mode = "translate" | "reply" | "rewrite";
+export type Mode = "translate" | "reply" | "rewrite" | "summarize";
 /** Passed from the no-view launcher; startedAt is the hotkey press time (epoch ms). */
 export type LLMRequest = { mode: Mode; text: string; startedAt: number };
 
@@ -50,12 +50,16 @@ export function isVietnamese(text: string): boolean {
 /** The one placeholder used everywhere something is still on its way. */
 const LOADING = "⏳ Loading…";
 
-function buildPrompt(mode: Mode, text: string): { title: string; system: string } {
+function buildPrompt(mode: Mode, text: string, targetOverride?: Target): { title: string; system: string } {
   if (mode === "translate") {
     const target = isVietnamese(text) ? "English" : "Vietnamese";
     const title = target === "English" ? "🇬🇧 EN" : "🇻🇳 VI";
     // A word or short phrase is a dictionary lookup: meanings, usage and examples in one streamed answer.
     return { title, system: systemPrompt(isLookupText(text) ? "lookup" : "translate", target) };
+  }
+  if (mode === "summarize") {
+    const target: Target = targetOverride ?? (getLanguage() === "en" ? "English" : "Vietnamese");
+    return { title: "📋 Summary", system: systemPrompt("summarize", target) };
   }
   return mode === "rewrite"
     ? { title: "✨ Polished", system: systemPrompt("rewrite") }
@@ -104,10 +108,10 @@ function parseLessons(lessons: string, original: string): Lesson[] {
     .filter((l) => !l.wrong || draft.includes(normalize(l.wrong).toLowerCase()));
 }
 
-type Run = { id: number; at: number; idea: string; previous: string };
+type Run = { id: number; at: number; idea: string; previous: string; target?: Target };
 
 /**
- * Streams one LLM answer. Re-runs on a new selection, or via regenerate(idea, previous):
+ * Streams one LLM answer. Re-runs on a new selection, or via regenerate(idea, previous, target):
  * with `previous` the model revises that version instead of starting from scratch.
  */
 function useLLM({ mode, text, startedAt }: LLMRequest) {
@@ -117,7 +121,7 @@ function useLLM({ mode, text, startedAt }: LLMRequest) {
   const [totalMs, setTotalMs] = useState<number>();
   const [run, setRun] = useState<Run>({ id: 0, at: startedAt, idea: "", previous: "" });
   // Read once per request (custom prompts come from a file), not on every loading tick.
-  const { title, system } = useMemo(() => buildPrompt(mode, text), [mode, text]);
+  const { title, system } = useMemo(() => buildPrompt(mode, text, run.target), [mode, text, run.target]);
 
   // A new selection starts a fresh run (Raycast may reuse this view).
   useEffect(() => {
@@ -173,7 +177,8 @@ function useLLM({ mode, text, startedAt }: LLMRequest) {
 
   const cleaned = cleanOutput(output, text);
   const { main: result, lessons } = mode === "rewrite" ? splitLessons(cleaned) : { main: cleaned, lessons: "" };
-  const regenerate = (idea = "", previous = "") => setRun((r) => ({ id: r.id + 1, at: Date.now(), idea, previous }));
+  const regenerate = (idea = "", previous = "", target?: Target) =>
+    setRun((r) => ({ id: r.id + 1, at: Date.now(), idea, previous, target: target ?? r.target }));
 
   return {
     title,
@@ -489,6 +494,68 @@ function ResultDetail(request: LLMRequest) {
   );
 }
 
+/** Summarize: structured Markdown TL;DR, Key Points, and Action Items with 1-key language toggle. */
+function SummarizeDetail(request: LLMRequest) {
+  const t = ui();
+  const { providerName, model } = getConfig();
+  const defaultTarget: Target = getLanguage() === "en" ? "English" : "Vietnamese";
+  const [target, setTarget] = useState<Target>(defaultTarget);
+  const llm = useLLM(request);
+
+  useEffect(() => {
+    setTarget(getLanguage() === "en" ? "English" : "Vietnamese");
+  }, [request.text, request.startedAt]);
+
+  const nextTarget: Target = target === "English" ? "Vietnamese" : "English";
+  const safeResult = stripImages(llm.result);
+  const markdown = llm.error
+    ? `## ⚠️ Error\n\n\`\`\`\n${llm.error}\n\`\`\``
+    : safeResult || (llm.isLoading ? `_${llm.pending}_` : "_(empty response)_");
+
+  const wordCount = request.text.trim() ? request.text.trim().split(/\s+/).length : 0;
+  const metadata = !llm.error && (
+    <Detail.Metadata>
+      <Detail.Metadata.Label title={t.summaryLanguage} text={target === "English" ? "English" : "Tiếng Việt"} />
+      <Detail.Metadata.Label title={t.originalLength} text={t.formatLength(wordCount, request.text.length)} />
+      <Detail.Metadata.Separator />
+      <Detail.Metadata.Label title="Provider" text={providerName} />
+      <Detail.Metadata.Label title="Model" text={model || "—"} />
+    </Detail.Metadata>
+  );
+
+  return (
+    <Detail
+      isLoading={llm.isLoading}
+      navigationTitle={llm.navigationTitle}
+      markdown={markdown}
+      metadata={metadata || undefined}
+      actions={
+        <ActionPanel>
+          {llm.error && settingsAction}
+          {llm.result && <Action.CopyToClipboard title="Copy Summary" content={llm.result} />}
+          {llm.result && <Action.Paste content={llm.result} shortcut={{ modifiers: ["cmd", "shift"], key: "v" }} />}
+          <Action
+            title={nextTarget === "English" ? "Summarize in English" : "Summarize in Tiếng Việt"}
+            icon={Icon.Globe}
+            shortcut={{ modifiers: ["cmd"], key: "t" }}
+            onAction={() => {
+              setTarget(nextTarget);
+              llm.regenerate("", "", nextTarget);
+            }}
+          />
+          <Action
+            title="Regenerate"
+            icon={Icon.ArrowClockwise}
+            shortcut={Keyboard.Shortcut.Common.Refresh}
+            onAction={() => llm.regenerate()}
+          />
+          {!llm.error && settingsAction}
+        </ActionPanel>
+      }
+    />
+  );
+}
+
 export function LLMView(request: LLMRequest) {
   const { text, clipped } = clipInput(request.text);
   // Warnings, once per request: an oversized input was cut, or the endpoint is unencrypted.
@@ -507,5 +574,7 @@ export function LLMView(request: LLMRequest) {
   }, [request.text, request.startedAt]);
 
   const clippedRequest = { ...request, text };
-  return request.mode === "translate" ? <ResultDetail {...clippedRequest} /> : <EditableForm {...clippedRequest} />;
+  if (request.mode === "translate") return <ResultDetail {...clippedRequest} />;
+  if (request.mode === "summarize") return <SummarizeDetail {...clippedRequest} />;
+  return <EditableForm {...clippedRequest} />;
 }

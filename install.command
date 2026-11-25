@@ -62,9 +62,9 @@ printf "\n\033[1;32m✓ AI Buddy is installed.\033[0m\n"
 cat <<'EOF'
 
 Next steps in Raycast:
-  1. Type "Buddy Home" and press Enter. Raycast will prompt you for your API key on first launch.
+  1. Type "Buddy Home" and press Enter, then open Settings to choose your Active Provider and enter its API key.
   2. Optional hotkeys: Raycast Settings → Extensions → AI Buddy →
-     Buddy Translate ⌃⌘T · Buddy Draft Reply ⌃⌘R · Buddy Polish English ⌃⌘E
+     Buddy Translate ⌃⌘T · Buddy Draft Reply ⌃⌘R · Buddy Polish English ⌃⌘E · Buddy Summarize ⌃⌘S
 
 EOF
 read -r -p "Press Enter to close…"

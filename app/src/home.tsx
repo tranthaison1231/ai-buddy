@@ -10,7 +10,7 @@ import {
   Toast,
 } from "@raycast/api";
 import { useState } from "react";
-import { getConfig, isInsecureEndpoint } from "./llm";
+import { getConfig, getConfigError, isInsecureEndpoint } from "./llm";
 import { LLMView, Mode } from "./llm-view";
 import { clearLookupCache } from "./lookup";
 import { clearPronunciationCache } from "./pronounce";
@@ -21,18 +21,21 @@ const FEATURES: { mode: Mode; title: string; icon: string; hotkey: string }[] = 
   { mode: "translate", title: "Buddy Translate", icon: "buddy-translate.png", hotkey: "⌃⌘T" },
   { mode: "reply", title: "Buddy Draft Reply", icon: "buddy-draft-reply.png", hotkey: "⌃⌘R" },
   { mode: "rewrite", title: "Buddy Polish English", icon: "buddy-polish.png", hotkey: "⌃⌘E" },
+  { mode: "summarize", title: "Buddy Summarize", icon: "buddy-summarize.png", hotkey: "⌃⌘S" },
 ];
 
 export function BuddyHome() {
-  const { baseUrl, model } = getConfig();
+  const cfg = getConfig();
+  const { providerName, baseUrl, model } = cfg;
+  const configError = getConfigError(cfg);
   const t = ui();
   const [text, setText] = useState("");
   const typed = text.trim();
-  const host = baseUrl.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const host = baseUrl ? baseUrl.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : "—";
 
   const settingsAction = (
     <Action
-      title="Open Settings (Language, API Key, Model, Hotkeys)"
+      title="Open Settings (Provider, API Key, Model, Hotkeys)"
       icon={Icon.Gear}
       shortcut={{ modifiers: ["cmd", "shift"], key: "," }}
       onAction={openExtensionPreferences}
@@ -65,7 +68,8 @@ export function BuddyHome() {
                       <List.Item.Detail.Metadata.TagList.Item text={f.hotkey} color={Color.Blue} />
                     </List.Item.Detail.Metadata.TagList>
                     <List.Item.Detail.Metadata.Label title="Input" text={t.inputHint} />
-                    <List.Item.Detail.Metadata.Label title="Model" text={model} />
+                    <List.Item.Detail.Metadata.Label title="Provider" text={providerName} />
+                    <List.Item.Detail.Metadata.Label title="Model" text={model || "—"} />
                   </List.Item.Detail.Metadata>
                 }
               />
@@ -102,13 +106,24 @@ export function BuddyHome() {
           title="Settings"
           subtitle={t.settingsSubtitle}
           icon={{ source: Icon.Gear, tintColor: Color.SecondaryText }}
+          accessories={[
+            configError
+              ? { tag: { value: t.notConfigured, color: Color.Orange } }
+              : { tag: { value: providerName, color: Color.Green } },
+          ]}
           detail={
             <List.Item.Detail
               markdown={t.settingsGuide}
               metadata={
                 <List.Item.Detail.Metadata>
-                  <List.Item.Detail.Metadata.Label title="Model" text={model} />
+                  <List.Item.Detail.Metadata.Label title="Active Provider" text={providerName} />
+                  <List.Item.Detail.Metadata.Label title="Model" text={model || "—"} />
                   <List.Item.Detail.Metadata.Label title="Endpoint" text={host} />
+                  {configError && (
+                    <List.Item.Detail.Metadata.TagList title="">
+                      <List.Item.Detail.Metadata.TagList.Item text={t.notConfigured} color={Color.Orange} />
+                    </List.Item.Detail.Metadata.TagList>
+                  )}
                   {isInsecureEndpoint(baseUrl) && (
                     <List.Item.Detail.Metadata.TagList title="">
                       <List.Item.Detail.Metadata.TagList.Item text={t.insecureShort} color={Color.Red} />

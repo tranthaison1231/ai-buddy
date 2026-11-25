@@ -42,7 +42,7 @@ export function PromptList() {
 ${fence(instructions)}
 ### 🔒 ${t.fixedPart}
 _${t.fixedPartNote}_
-${fence(def.contract(id === "translate" || id === "lookup" ? "<English | Vietnamese>" : ""))}`}
+${fence(def.contract(id === "translate" || id === "lookup" || id === "summarize" ? "<English | Vietnamese>" : ""))}`}
               />
             }
             actions={
