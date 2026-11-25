@@ -64,7 +64,8 @@ cat <<'EOF'
 Next steps in Raycast:
   1. Type "Buddy Home" and press Enter, then open Settings to choose your Active Provider and enter its API key.
   2. Optional hotkeys: Raycast Settings → Extensions → AI Buddy →
-     Buddy Translate ⌃⌘T · Buddy Draft Reply ⌃⌘R · Buddy Polish English ⌃⌘E · Buddy Summarize ⌃⌘S
+     Buddy Translate ⌃⌘T · Buddy Draft Reply ⌃⌘R · Buddy Polish English ⌃⌘E · Buddy Write ⌃⌘W
+     Buddy Summarize ⌃⌘S · Buddy Ask ⌃⌘A · Buddy Vision ⌃⌘V
 
 EOF
 read -r -p "Press Enter to close…"

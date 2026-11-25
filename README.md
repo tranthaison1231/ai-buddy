@@ -37,7 +37,7 @@ Installation typically takes approximately 2 minutes.
    - Choose your **Active Provider** (**Google Gemini**, **Groq**, **OpenAI**, or **Custom**).
    - Enter the corresponding **API Key** (and optionally adjust the **Model**; sensible defaults are pre-filled).
    - You can save keys for multiple providers and switch between them anytime using the **Active Provider** dropdown.
-3. *(Optional)* To switch the interface language to English, set **Language** to **English**.
+3. *(Optional)* To switch the interface language to Vietnamese, set **Language** to **Tiếng Việt**.
 4. *(Optional)* To have **Buddy Polish English** replace selected text immediately without opening the popup, set **Polish English Mode** to **Replace Immediately**.
 5. *(Optional)* Configure **Buddy Write Mode** (**Replace Immediately** or **Show Popup**) and **Buddy Write Language** (**Auto**, **English**, or **Tiếng Việt**).
 6. *(Optional)* Choose the default mode for **Buddy Vision** under **Vision Default Action** (**Explain**, **Extract Text (OCR)**, **Translate**, or **Summarize**).

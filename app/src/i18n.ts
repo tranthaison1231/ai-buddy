@@ -525,7 +525,7 @@ Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E
 };
 
 export const getLanguage = (): Language =>
-  getPreferenceValues<{ language?: Language }>().language === "en" ? "en" : "vi";
+  getPreferenceValues<{ language?: Language }>().language === "vi" ? "vi" : "en";
 
 /** Strings for the language chosen in Settings (read on each render, so a change applies on reopen). */
 export const ui = (): Strings => (getLanguage() === "en" ? en : vi);
