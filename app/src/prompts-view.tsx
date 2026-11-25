@@ -42,7 +42,15 @@ export function PromptList() {
 ${fence(instructions)}
 ### 🔒 ${t.fixedPart}
 _${t.fixedPartNote}_
-${fence(def.contract(id === "translate" || id === "lookup" || id === "summarize" ? "<English | Vietnamese>" : ""))}`}
+${fence(
+  def.contract(
+    id === "translate" || id === "lookup" || id === "summarize"
+      ? "<English | Vietnamese>"
+      : id === "write"
+        ? "Style: <Chat | Email | Short & Direct | Formal>\nLanguage: <Auto | English | Tiếng Việt>"
+        : "",
+  ),
+)}`}
               />
             }
             actions={

@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "ai-buddy",
   "title": "AI Buddy",
-  "description": "AI helpers for daily work: translate, reply, polish, summarize, ask, and analyze images with any OpenAI-compatible LLM",
+  "description": "AI helpers for daily work: translate, reply, polish, write from notes, summarize, ask, and analyze images with any OpenAI-compatible LLM",
   "icon": "buddy.png",
   "author": "tranthaison1231",
   "platforms": [
@@ -57,6 +57,45 @@
         }
       ],
       "icon": "buddy-polish.png"
+    },
+    {
+      "name": "write",
+      "title": "Buddy Write",
+      "description": "Turn rough shorthand notes or bullet points into a complete, ready-to-send chat message or email",
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "notes",
+          "placeholder": "Rough notes or bullet points",
+          "type": "text",
+          "required": false
+        },
+        {
+          "name": "style",
+          "placeholder": "Style (default: Chat / Slack)",
+          "type": "dropdown",
+          "required": false,
+          "data": [
+            {
+              "title": "Chat / Slack",
+              "value": "chat"
+            },
+            {
+              "title": "Email",
+              "value": "email"
+            },
+            {
+              "title": "Short & Direct",
+              "value": "concise"
+            },
+            {
+              "title": "Formal",
+              "value": "formal"
+            }
+          ]
+        }
+      ],
+      "icon": "buddy-write.png"
     },
     {
       "name": "summarize",
@@ -191,6 +230,46 @@
         {
           "title": "Replace Immediately",
           "value": "replace"
+        }
+      ]
+    },
+    {
+      "name": "writeMode",
+      "title": "Buddy Write Mode",
+      "description": "Choose whether Buddy Write replaces selected notes immediately or opens the review popup.",
+      "type": "dropdown",
+      "required": false,
+      "default": "replace",
+      "data": [
+        {
+          "title": "Replace Immediately",
+          "value": "replace"
+        },
+        {
+          "title": "Show Popup",
+          "value": "popup"
+        }
+      ]
+    },
+    {
+      "name": "writeLanguage",
+      "title": "Buddy Write Language",
+      "description": "Default output language for Buddy Write (can still be overridden in notes or toggled with ⌘T in the popup).",
+      "type": "dropdown",
+      "required": false,
+      "default": "auto",
+      "data": [
+        {
+          "title": "Auto (Match Notes)",
+          "value": "auto"
+        },
+        {
+          "title": "English",
+          "value": "en"
+        },
+        {
+          "title": "Tiếng Việt",
+          "value": "vi"
         }
       ]
     },

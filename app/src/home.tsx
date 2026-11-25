@@ -23,13 +23,15 @@ import { PromptList } from "./prompts-view";
 import { clearPronunciationCache } from "./pronounce";
 import { captureScreenRegion, readClipboardImage } from "./vision-io";
 import { VisionFileForm, VisionRequest, VisionView } from "./vision-view";
+import { WriteForm, WriteView } from "./write-view";
 
-export type HomeFeatureId = Mode | "ask" | "vision";
+export type HomeFeatureId = Mode | "write" | "ask" | "vision";
 
 const FEATURES: { mode: HomeFeatureId; title: string; icon: string; hotkey: string }[] = [
   { mode: "translate", title: "Buddy Translate", icon: "buddy-translate.png", hotkey: "⌃⌘T" },
   { mode: "reply", title: "Buddy Draft Reply", icon: "buddy-draft-reply.png", hotkey: "⌃⌘R" },
   { mode: "rewrite", title: "Buddy Polish English", icon: "buddy-polish.png", hotkey: "⌃⌘E" },
+  { mode: "write", title: "Buddy Write", icon: "buddy-write.png", hotkey: "⌃⌘W" },
   { mode: "summarize", title: "Buddy Summarize", icon: "buddy-summarize.png", hotkey: "⌃⌘S" },
   { mode: "ask", title: "Buddy Ask", icon: "buddy-ask.png", hotkey: "⌃⌘A" },
   { mode: "vision", title: "Buddy Vision", icon: "buddy-vision.png", hotkey: "⌃⌘V" },
@@ -87,6 +89,26 @@ export function BuddyHome() {
   };
 
   const renderActions = (f: (typeof FEATURES)[number]) => {
+    if (f.mode === "write") {
+      return (
+        <ActionPanel>
+          <Action.Push
+            title={typed ? `Run ${f.title}` : "Open Buddy Write"}
+            icon={Icon.Play}
+            target={typed ? <WriteView initialNotes={typed} startedAt={Date.now()} /> : <WriteForm />}
+          />
+          {typed && (
+            <Action.Push
+              title="Write as Email"
+              icon={Icon.Envelope}
+              target={<WriteView initialNotes={typed} initialStyle="email" startedAt={Date.now()} />}
+            />
+          )}
+          {settingsAction}
+        </ActionPanel>
+      );
+    }
+
     if (f.mode === "ask") {
       return (
         <ActionPanel>

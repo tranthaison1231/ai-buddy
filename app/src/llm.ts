@@ -3,6 +3,9 @@ import { LESSONS_MARKER } from "./prompts";
 
 export type ProviderId = "gemini" | "groq" | "openai" | "custom";
 export type PolishMode = "popup" | "replace";
+export type WriteMode = "popup" | "replace";
+export type WriteLanguage = "auto" | "en" | "vi";
+export type WriteStyle = "chat" | "email" | "concise" | "formal";
 export type VisionAction = "explain" | "ocr" | "translate" | "summarize" | "ask";
 
 export type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
@@ -20,6 +23,8 @@ export type Prefs = {
   model: string;
   fastMode: boolean;
   polishMode: PolishMode;
+  writeMode: WriteMode;
+  writeLanguage: WriteLanguage;
   visionAction: Exclude<VisionAction, "ask">;
   mwKey?: string;
 };
@@ -28,6 +33,8 @@ type RawPrefs = {
   activeProvider?: ProviderId;
   fastMode?: boolean;
   polishMode?: PolishMode;
+  writeMode?: WriteMode;
+  writeLanguage?: WriteLanguage;
   visionAction?: string;
   geminiApiKey?: string;
   geminiModel?: string;
@@ -74,6 +81,10 @@ function resolveProviderId(value?: string): ProviderId {
   return value === "groq" || value === "openai" || value === "custom" ? value : "gemini";
 }
 
+function resolveWriteLanguage(value?: string): WriteLanguage {
+  return value === "en" || value === "vi" ? value : "auto";
+}
+
 function resolveVisionAction(value?: string): Exclude<VisionAction, "ask"> {
   return value === "ocr" || value === "translate" || value === "summarize" ? value : "explain";
 }
@@ -117,6 +128,8 @@ export function getConfig(): Prefs {
     mwKey: prefs.mwKey?.trim() || undefined,
     fastMode: prefs.fastMode ?? true,
     polishMode: prefs.polishMode === "replace" ? "replace" : "popup",
+    writeMode: prefs.writeMode === "popup" ? "popup" : "replace",
+    writeLanguage: resolveWriteLanguage(prefs.writeLanguage),
     visionAction: resolveVisionAction(prefs.visionAction),
   };
 }

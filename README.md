@@ -1,6 +1,6 @@
 # AI Buddy
 
-AI Buddy is a Raycast extension for macOS that supports Vietnamese ⇄ English translation, English reply drafting, English writing refinement, text/thread summarization, quick multi-turn AI Q&A, and screenshot/image vision analysis using any OpenAI-compatible LLM.
+AI Buddy is a Raycast extension for macOS that supports Vietnamese ⇄ English translation, English reply drafting, English writing refinement, expanding rough notes into complete messages/emails, text/thread summarization, quick multi-turn AI Q&A, and screenshot/image vision analysis using any OpenAI-compatible LLM.
 
 ## Prerequisites
 
@@ -39,7 +39,8 @@ Installation typically takes approximately 2 minutes.
    - You can save keys for multiple providers and switch between them anytime using the **Active Provider** dropdown.
 3. *(Optional)* To switch the interface language to English, set **Language** to **English**.
 4. *(Optional)* To have **Buddy Polish English** replace selected text immediately without opening the popup, set **Polish English Mode** to **Replace Immediately**.
-5. *(Optional)* Choose the default mode for **Buddy Vision** under **Vision Default Action** (**Explain**, **Extract Text (OCR)**, **Translate**, or **Summarize**).
+5. *(Optional)* Configure **Buddy Write Mode** (**Replace Immediately** or **Show Popup**) and **Buddy Write Language** (**Auto**, **English**, or **Tiếng Việt**).
+6. *(Optional)* Choose the default mode for **Buddy Vision** under **Vision Default Action** (**Explain**, **Extract Text (OCR)**, **Translate**, or **Summarize**).
 
 ## Recommended Hotkeys
 
@@ -50,6 +51,7 @@ Assigning hotkeys makes AI Buddy significantly faster to use. Open **Raycast →
 | **Buddy Translate** | `⌃⌘T` | Translate the selected text (Vietnamese ⇄ English) |
 | **Buddy Draft Reply** | `⌃⌘R` | Draft an English reply based on the selected message |
 | **Buddy Polish English** | `⌃⌘E` | Refine and polish the selected English draft |
+| **Buddy Write** | `⌃⌘W` | Turn rough shorthand notes into a complete chat message or email (replaces in-place by default) |
 | **Buddy Summarize** | `⌃⌘S` | Summarize the selected thread, email, or document into TL;DR, key points, and action items |
 | **Buddy Ask** | `⌃⌘A` | Ask AI anything with multi-turn follow-ups and optional selected-text context |
 | **Buddy Vision** | `⌃⌘V` | Capture a screen region (or use Clipboard / File) to OCR, translate, explain, or summarize images |

@@ -1,6 +1,6 @@
 import { getPreferenceValues } from "@raycast/api";
 import type { HomeFeatureId } from "./home";
-import type { VisionAction } from "./llm";
+import type { VisionAction, WriteLanguage, WriteStyle } from "./llm";
 import type { PromptId } from "./prompts";
 import type { VisionSource } from "./vision-io";
 
@@ -23,6 +23,7 @@ const vi = {
     translate: "Việt ⇄ Anh",
     reply: "Soạn nháp câu trả lời",
     rewrite: "Sửa tiếng Anh + học",
+    write: "Ý nháp → Tin nhắn / Email",
     summarize: "Tóm tắt + Action Items",
     ask: "Hỏi AI nhanh + nối tiếp",
     vision: "Đọc, dịch & giải thích ảnh",
@@ -73,6 +74,20 @@ Viết lại draft tiếng Anh cho đúng ngữ pháp, tự nhiên. Kèm **📘 
 - **⌘R** Viết lại từ đầu
 
 *(Mẹo: Vào **Settings → Polish English Mode** chọn **Replace Immediately** nếu muốn bấm hotkey là thay thế ngay không cần mở popup.)*`,
+    write: `## 📝 Buddy Write
+Biến vài chữ nháp cụt / gạch đầu dòng (tiếng Việt không dấu hoặc tiếng Anh) thành **tin nhắn Slack hoặc email hoàn chỉnh**, giữ đúng ý gốc.
+
+### Cách dùng
+1. Gõ nháp ngay trong Slack / Gmail (vd: \`mai nghỉ sáng có việc gd, task A đẩy PR rồi, gấp gọi đt\`), bôi đen rồi bấm hotkey
+2. Mặc định (**Replace Immediately**): thay thế thẳng đoạn nháp tại chỗ mà không mở popup
+3. Hoặc chọn **Show Popup** trong Settings (hay mở khi chưa bôi đen) để xem trước, đổi phong cách và chỉnh tiếp
+
+### Trong màn hình xem trước
+- **↵** Thay thế đoạn chọn (hoặc Copy) · **⌘T** Đổi ngôn ngữ (Tiếng Việt ⇄ English)
+- **⌘1** Chat / Slack · **⌘2** Email · **⌘3** Ngắn gọn · **⌘4** Trang trọng
+- Gõ vào ô **💡 Chỉnh thêm** rồi **↵** để sửa tiếp trên bản hiện tại
+
+*(Mẹo: Có thể ghi gợi ý đầu câu như \`email:\` hoặc \`en:\` ngay trong đoạn nháp để chỉ định nhanh định dạng / ngôn ngữ.)*`,
     summarize: `## 📋 Buddy Summarize
 Tóm tắt nhanh thread Slack/Teams, email, tài liệu hoặc ticket dài thành **TL;DR**, **Key Points** và **Action Items** (nếu có).
 
@@ -119,6 +134,7 @@ Nhấn **↵** để xem và sửa prompt của từng buddy: vai trò, giọng 
 - **Dictionary Lookup** - thẻ từ điển khi tra từ / cụm ≤ 3 từ
 - **Draft Reply** - soạn câu trả lời
 - **Polish English** - sửa tiếng Anh + bài học
+- **Write** - biến ý nháp thành tin nhắn / email hoàn chỉnh
 - **Summarize** - tóm tắt + Action Items
 - **Ask** - hỏi đáp nhanh + follow-up
 - **Vision** - đọc, dịch, giải thích ảnh
@@ -135,6 +151,7 @@ Nhấn **↵** để mở trang cài đặt của AI Buddy trong Raycast:
 - **API Key & Model** - cấu hình riêng cho từng provider ngay bên dưới, API key được Raycast lưu bảo mật trong Keychain
 - **Language** - ngôn ngữ giao diện: Tiếng Việt / English
 - **Polish English Mode** - chọn mở popup xem trước (Show Popup) hoặc thay thế ngay (Replace Immediately)
+- **Buddy Write Mode & Language** - chọn thay thế ngay hay mở popup, và ngôn ngữ đầu ra mặc định (Tự động / English / Tiếng Việt)
 - **Vision Default Action** - chế độ mặc định khi chụp ảnh với Buddy Vision (Explain / OCR / Translate / Summarize)
 - **Hotkey** - gán phím tắt cho từng lệnh ở mục Commands
 - **Giọng đọc** - theo System voice của macOS (Accessibility → Read & Speak)
@@ -144,7 +161,7 @@ Nhấn **↵** để mở trang cài đặt của AI Buddy trong Raycast:
 - **Prompt đã sửa** - \`prompts.json\`
 - ⌘K → **Show Data Folder** để xem · **Clear Dictionary Cache** để xoá
 
-Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘S** Summarize · **⌃⌘A** Ask · **⌃⌘V** Vision`,
+Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘W** Write · **⌃⌘S** Summarize · **⌃⌘A** Ask · **⌃⌘V** Vision`,
 
   // Prompts screen
   promptSubtitle: {
@@ -152,6 +169,7 @@ Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E**
     lookup: "Tra từ / cụm ≤ 3 từ",
     reply: "Soạn câu trả lời",
     rewrite: "Sửa tiếng Anh + bài học",
+    write: "Ý nháp → Tin nhắn / Email hoàn chỉnh",
     summarize: "Tóm tắt + Action Items",
     ask: "Hỏi AI nhanh + follow-up",
     vision: "Phân tích ảnh chụp màn hình / file",
@@ -170,6 +188,7 @@ Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E**
   ideaPlaceholder: {
     reply: "Input idea (vd: chưa kịp, mai 9h gửi), then ↵",
     rewrite: "Input idea (vd: thêm ý, lịch sự hơn), then ↵",
+    write: "Gõ yêu cầu chỉnh (vd: lịch sự hơn, ngắn lại 2 câu, thêm cảm ơn…), rồi ↵",
   },
   applied: "Đã áp dụng",
   direction: "Dịch",
@@ -188,6 +207,27 @@ Gợi ý hotkey: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E**
   originalLength: "Độ dài gốc",
   formatLength: (words: number, chars: number) =>
     `${words.toLocaleString("en-US")} từ · ${chars.toLocaleString("en-US")} ký tự`,
+
+  // Buddy Write
+  writeNotesField: "📝 Ý nháp",
+  writeNotesPlaceholder: "Vd: mai nghỉ sáng có việc gd, task A đẩy PR rồi, gấp gọi đt…",
+  writeStyleField: "🎨 Phong cách",
+  writeLanguageField: "🌐 Ngôn ngữ đầu ra",
+  writeRefineField: "💡 Chỉnh thêm",
+  writeEmptyError: "Vui lòng nhập ý nháp",
+  writeFormHint: "Nhấn ⌘↵ để viết · có thể gõ tiếng Việt không dấu hoặc gạch đầu dòng.",
+  writeShortcutHint: "⌘1 Chat · ⌘2 Email · ⌘3 Ngắn gọn · ⌘4 Trang trọng · ⌘T Đổi Anh ⇄ Việt",
+  writeStyleLabel: {
+    chat: "💬 Chat / Slack",
+    email: "📧 Email (kèm Subject)",
+    concise: "⚡ Ngắn gọn, đi thẳng vào ý",
+    formal: "🎩 Trang trọng / Lịch sự",
+  } as Record<WriteStyle, string>,
+  writeLanguageLabel: {
+    auto: "Tự động (theo ngôn ngữ ý nháp)",
+    en: "English",
+    vi: "Tiếng Việt",
+  } as Record<WriteLanguage, string>,
 
   // Buddy Ask
   askQuestionField: "❓ Câu hỏi",
@@ -243,6 +283,7 @@ const en: Strings = {
     translate: "Vietnamese ⇄ English",
     reply: "Draft a reply",
     rewrite: "Fix English + learn",
+    write: "Rough notes → Message / Email",
     summarize: "TL;DR + Action Items",
     ask: "Quick AI Q&A + follow-ups",
     vision: "OCR, translate & explain images",
@@ -293,6 +334,20 @@ Rewrites an English draft into correct, natural English. Plus **📘 Lessons**: 
 - **⌘R** Start over
 
 *(Tip: Choose **Replace Immediately** in **Settings → Polish English Mode** to replace selected text directly without opening the popup.)*`,
+    write: `## 📝 Buddy Write
+Turns rough shorthand notes or bullet points (Vietnamese or English) into a **complete, ready-to-send chat message or email**, faithfully keeping all your facts.
+
+### How to use
+1. Type rough notes in Slack / Gmail (e.g. \`off tomorrow morning family matter, task A PR ready, call if urgent\`), select them, and press the hotkey
+2. Default (**Replace Immediately**): replaces the selected notes in-place without opening a popup
+3. Or switch to **Show Popup** in Settings (or launch with nothing selected) to preview, switch styles, and refine
+
+### In the preview
+- **↵** Replace selection (or Copy) · **⌘T** Switch language (English ⇄ Tiếng Việt)
+- **⌘1** Chat / Slack · **⌘2** Email · **⌘3** Short & Direct · **⌘4** Formal
+- Type a tweak in **💡 Refine** and press **↵** to revise the current draft
+
+*(Tip: Prefix notes with cues like \`email:\` or \`en:\` to force email format or English on the fly.)*`,
     summarize: `## 📋 Buddy Summarize
 Condenses long Slack/Teams threads, emails, docs, or specs into a clean **TL;DR**, **Key Points**, and **Action Items** (when present).
 
@@ -339,6 +394,7 @@ Press **↵** to view and edit each buddy's prompt: role, tone, pronoun rules, e
 - **Dictionary Lookup** - the dictionary card for words / phrases of ≤ 3 words
 - **Draft Reply** - reply drafts
 - **Polish English** - English fixes + lessons
+- **Write** - expand rough notes into a complete message or email
 - **Summarize** - TL;DR, key points & action items
 - **Ask** - quick Q&A + follow-ups
 - **Vision** - screenshot & image analysis
@@ -355,6 +411,7 @@ Press **↵** to open AI Buddy's settings in Raycast:
 - **API Key & Model** - configured per provider below; API keys are stored securely by Raycast (Keychain)
 - **Language** - interface language: Tiếng Việt / English
 - **Polish English Mode** - choose between Show Popup or Replace Immediately
+- **Buddy Write Mode & Language** - replace selected notes immediately or open popup, and choose default output language (Auto / English / Tiếng Việt)
 - **Vision Default Action** - default action when capturing an image with Buddy Vision (Explain / OCR / Translate / Summarize)
 - **Hotkey** - assign a hotkey to each command under Commands
 - **Voice** - the macOS system voice (Accessibility → Read & Speak)
@@ -364,13 +421,14 @@ Press **↵** to open AI Buddy's settings in Raycast:
 - **Edited prompts** - \`prompts.json\`
 - ⌘K → **Show Data Folder** to view · **Clear Dictionary Cache** to delete
 
-Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘S** Summarize · **⌃⌘A** Ask · **⌃⌘V** Vision`,
+Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E** Polish English · **⌃⌘W** Write · **⌃⌘S** Summarize · **⌃⌘A** Ask · **⌃⌘V** Vision`,
 
   promptSubtitle: {
     translate: "Sentences and paragraphs",
     lookup: "Words / phrases of ≤ 3 words",
     reply: "Reply drafts",
     rewrite: "English fixes + lessons",
+    write: "Rough notes → complete message or email",
     summarize: "TL;DR, key points & action items",
     ask: "Quick Q&A + follow-ups",
     vision: "Screenshot & image analysis",
@@ -388,6 +446,7 @@ Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E
   ideaPlaceholder: {
     reply: "Input idea (e.g. not yet, will send at 9am), then ↵",
     rewrite: "Input idea (e.g. add a point, more polite), then ↵",
+    write: "Type a tweak (e.g. more polite, shorter, add a thank-you…), then ↵",
   },
   applied: "Applied",
   direction: "Direction",
@@ -405,6 +464,26 @@ Suggested hotkeys: **⌃⌘T** Translate · **⌃⌘R** Draft Reply · **⌃⌘E
   summaryLanguage: "Language",
   originalLength: "Original length",
   formatLength: (words, chars) => `${words.toLocaleString("en-US")} words · ${chars.toLocaleString("en-US")} chars`,
+
+  writeNotesField: "📝 Rough Notes",
+  writeNotesPlaceholder: "e.g. off tomorrow morning family matter, task A PR is up, call if urgent…",
+  writeStyleField: "🎨 Style",
+  writeLanguageField: "🌐 Output Language",
+  writeRefineField: "💡 Refine",
+  writeEmptyError: "Please enter your rough notes",
+  writeFormHint: "Press ⌘↵ to write · shorthand Vietnamese or English bullets both work.",
+  writeShortcutHint: "⌘1 Chat · ⌘2 Email · ⌘3 Short · ⌘4 Formal · ⌘T English ⇄ Tiếng Việt",
+  writeStyleLabel: {
+    chat: "💬 Chat / Slack",
+    email: "📧 Email (with Subject)",
+    concise: "⚡ Short & Direct",
+    formal: "🎩 Formal & Polite",
+  },
+  writeLanguageLabel: {
+    auto: "Auto (Match Notes)",
+    en: "English",
+    vi: "Tiếng Việt",
+  },
 
   askQuestionField: "❓ Question",
   askContextField: "📎 Context (optional)",
